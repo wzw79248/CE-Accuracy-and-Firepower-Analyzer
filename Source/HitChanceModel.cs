@@ -256,6 +256,11 @@ namespace CEHitChanceCalculator
             Version++;
         }
 
+        public static void Touch()
+        {
+            Version++;
+        }
+
         public static bool TryGetFor(HitChanceInputs input, out LineOfFireObstacleContext context)
         {
             context = currentContext;

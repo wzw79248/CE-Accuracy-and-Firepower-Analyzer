@@ -401,4 +401,31 @@ Height: {3}-{4} vertical cells</CEHCC_BallisticObstacleTip>
   <CEHCC_SwayStartTick>Sway start absolute tick (-1 random)</CEHCC_SwayStartTick>
   <CEHCC_ShooterSuppressed>Shooter suppressed</CEHCC_ShooterSuppressed>
   <CEHCC_BlindFiring>Blind firing</CEHCC_BlindFiring>
+
+  <CEHCC_ObstacleEditor>Path cover</CEHCC_ObstacleEditor>
+  <CEHCC_ObstacleEditorTitle>Path cover / obstacles</CEHCC_ObstacleEditorTitle>
+  <CEHCC_ObstacleEditorEnabled>Enable filter</CEHCC_ObstacleEditorEnabled>
+  <CEHCC_ObstacleAddManual>Add blank</CEHCC_ObstacleAddManual>
+  <CEHCC_ObstacleAddPreset>Add preset</CEHCC_ObstacleAddPreset>
+  <CEHCC_ObstacleMatchCurrent>Match current input</CEHCC_ObstacleMatchCurrent>
+  <CEHCC_ObstacleClear>Clear</CEHCC_ObstacleClear>
+  <CEHCC_ObstacleTargetDistance>Target distance</CEHCC_ObstacleTargetDistance>
+  <CEHCC_ObstacleDistanceTolerance>Distance tolerance</CEHCC_ObstacleDistanceTolerance>
+  <CEHCC_ObstacleEditorApplies>Active: {0} valid entries.</CEHCC_ObstacleEditorApplies>
+  <CEHCC_ObstacleEditorNotApplied>Not active: check distance, shooter ID, enabled state, or valid entries.</CEHCC_ObstacleEditorNotApplied>
+  <CEHCC_ObstacleEditorEmpty>No path cover yet. Add a blank entry or use a preset.</CEHCC_ObstacleEditorEmpty>
+  <CEHCC_ObstacleValid>Valid</CEHCC_ObstacleValid>
+  <CEHCC_ObstacleInvalid>Invalid</CEHCC_ObstacleInvalid>
+  <CEHCC_ObstacleDelete>Delete</CEHCC_ObstacleDelete>
+  <CEHCC_ObstacleDistance>Distance</CEHCC_ObstacleDistance>
+  <CEHCC_ObstacleDepth>Depth</CEHCC_ObstacleDepth>
+  <CEHCC_ObstacleOffset>Offset</CEHCC_ObstacleOffset>
+  <CEHCC_ObstacleWidth>Width</CEHCC_ObstacleWidth>
+  <CEHCC_ObstacleMinHeight>Min h</CEHCC_ObstacleMinHeight>
+  <CEHCC_ObstacleMaxHeight>Max h</CEHCC_ObstacleMaxHeight>
+  <CEHCC_ObstacleManualContext>Manual path cover</CEHCC_ObstacleManualContext>
+  <CEHCC_ObstacleManualLabel>Manual cover</CEHCC_ObstacleManualLabel>
+  <CEHCC_ObstaclePresetLowCover>Low cover / sandbags</CEHCC_ObstaclePresetLowCover>
+  <CEHCC_ObstaclePresetHalfCover>Half-height cover</CEHCC_ObstaclePresetHalfCover>
+  <CEHCC_ObstaclePresetFullWall>Full-height wall</CEHCC_ObstaclePresetFullWall>
 </LanguageData>

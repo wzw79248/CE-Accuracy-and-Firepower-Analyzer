@@ -401,4 +401,31 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_SwayStartTick>摆动起始绝对 tick（-1随机）</CEHCC_SwayStartTick>
   <CEHCC_ShooterSuppressed>射手被压制</CEHCC_ShooterSuppressed>
   <CEHCC_BlindFiring>盲射</CEHCC_BlindFiring>
+
+  <CEHCC_ObstacleEditor>路径掩体</CEHCC_ObstacleEditor>
+  <CEHCC_ObstacleEditorTitle>路径掩体 / 障碍物</CEHCC_ObstacleEditorTitle>
+  <CEHCC_ObstacleEditorEnabled>启用过滤</CEHCC_ObstacleEditorEnabled>
+  <CEHCC_ObstacleAddManual>新增空白</CEHCC_ObstacleAddManual>
+  <CEHCC_ObstacleAddPreset>添加预设</CEHCC_ObstacleAddPreset>
+  <CEHCC_ObstacleMatchCurrent>匹配当前输入</CEHCC_ObstacleMatchCurrent>
+  <CEHCC_ObstacleClear>清空</CEHCC_ObstacleClear>
+  <CEHCC_ObstacleTargetDistance>目标距离</CEHCC_ObstacleTargetDistance>
+  <CEHCC_ObstacleDistanceTolerance>距离容差</CEHCC_ObstacleDistanceTolerance>
+  <CEHCC_ObstacleEditorApplies>当前生效：{0} 个有效项。</CEHCC_ObstacleEditorApplies>
+  <CEHCC_ObstacleEditorNotApplied>当前未生效：请检查距离、射手 ID、启用状态或有效项。</CEHCC_ObstacleEditorNotApplied>
+  <CEHCC_ObstacleEditorEmpty>暂无路径掩体。可以新增空白项，或从预设添加。</CEHCC_ObstacleEditorEmpty>
+  <CEHCC_ObstacleValid>有效</CEHCC_ObstacleValid>
+  <CEHCC_ObstacleInvalid>无效</CEHCC_ObstacleInvalid>
+  <CEHCC_ObstacleDelete>删除</CEHCC_ObstacleDelete>
+  <CEHCC_ObstacleDistance>距离</CEHCC_ObstacleDistance>
+  <CEHCC_ObstacleDepth>厚度</CEHCC_ObstacleDepth>
+  <CEHCC_ObstacleOffset>横向</CEHCC_ObstacleOffset>
+  <CEHCC_ObstacleWidth>宽度</CEHCC_ObstacleWidth>
+  <CEHCC_ObstacleMinHeight>底高</CEHCC_ObstacleMinHeight>
+  <CEHCC_ObstacleMaxHeight>顶高</CEHCC_ObstacleMaxHeight>
+  <CEHCC_ObstacleManualContext>手动路径掩体</CEHCC_ObstacleManualContext>
+  <CEHCC_ObstacleManualLabel>手动掩体</CEHCC_ObstacleManualLabel>
+  <CEHCC_ObstaclePresetLowCover>低掩体 / 沙袋</CEHCC_ObstaclePresetLowCover>
+  <CEHCC_ObstaclePresetHalfCover>半高掩体</CEHCC_ObstaclePresetHalfCover>
+  <CEHCC_ObstaclePresetFullWall>全高墙</CEHCC_ObstaclePresetFullWall>
 </LanguageData>

@@ -315,6 +315,7 @@ namespace CEHitChanceCalculator
                 new HeaderButton("CEHCC_LoadSelectedTarget".Translate().ToString(), LoadSelectedTargetData),
                 new HeaderButton("CEHCC_ToggleAdvanced".Translate().ToString(), delegate { showAdvanced = !showAdvanced; }),
                 new HeaderButton("CEHCC_TargetPresets".Translate().ToString(), ChooseTargetPreset),
+                new HeaderButton("CEHCC_ObstacleEditor".Translate().ToString(), OpenObstacleEditor),
                 new HeaderButton("CEHCC_Recalculate".Translate().ToString(), delegate { forceRecalculate = true; }),
                 new HeaderButton("CEHCC_SaveComparisonSnapshot".Translate().ToString(), SaveCurrentComparisonSnapshot),
                 new HeaderButton("CEHCC_CompareSelectedShooter".Translate().ToString(), LoadComparisonShooterData)
@@ -380,6 +381,11 @@ namespace CEHitChanceCalculator
                     }
                 }
             }
+        }
+
+        private void OpenObstacleEditor()
+        {
+            Find.WindowStack.Add(new Dialog_LineOfFireObstacleEditor(input));
         }
 
         private void DrawCurrentLoadout(Rect rect)
