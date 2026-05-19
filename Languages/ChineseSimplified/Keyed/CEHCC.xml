@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <CEHCC_SettingsCategory>CE命中与火力分析器 / 边缘兔头</CEHCC_SettingsCategory>
+  <CEHCC_OpenCalculator>打开计算器</CEHCC_OpenCalculator>
+  <CEHCC_SettingsDescription>Combat Extended 命中与火力分析器。用于估算命中率、逐发曲线、弹匣输出、持续 DPS、近失和弹丸伤害。</CEHCC_SettingsDescription>
+
+  <CEHCC_WindowTitle>CE 命中与火力分析器</CEHCC_WindowTitle>
+  <CEHCC_GlossaryTooltip>名词解释</CEHCC_GlossaryTooltip>
+  <CEHCC_GlossaryTitle>名词解释</CEHCC_GlossaryTitle>
+  <CEHCC_GlossaryBody><![CDATA[蒙特卡洛首发
+用大量随机样本模拟第一发子弹，结果更接近真实开火采样，但仍是近似。
+
+连发至少一发
+一轮连发里只要任意一发命中就算成功。它不是每发平均命中率。
+
+公式近似参考
+用较简化的公式快速估算命中率，只作为参考。真正看趋势时优先看蒙特卡洛结果。
+
+逐发
+连发中每一发自己的命中率。后续弹会受到后坐力、摆动时间和连发间隔影响。
+
+CE 后坐力
+首发不吃后坐力。从第 2 发开始，CE 会按已射出弹数提高后坐力倍率；这个累积在第 11 发起封顶。近似关系为：后坐力影响 = 武器后坐力 × (5 - 武器掌控)^(min(10, 已射出弹数) / 6.25)。RPM 不直接改变这个倍率，只会改变每发间隔，从而影响枪口摆动采样位置。
+
+稳压
+本分析器里用来描述长连发后段进入稳定区间的说法。稳压不是让命中率不下降，而是后坐力累积达到上限后，后续弹主要围绕一个较稳定的命中水平波动。高后坐力武器通常需要更高武器掌控才能维持可用的稳态命中率。
+
+水平穿过 / 垂直穿过
+水平穿过表示弹道在左右方向穿过目标宽度；垂直穿过表示弹道高度落在目标高度范围内。两者同时成立才算直击。
+
+体型与目标盒
+CE 命中判定不是直接拿“体型”当百分比，而是把目标的碰撞体读数折算成一个近似目标盒。目标越宽，水平越容易穿过；目标越高，垂直容错越大。大型机械和巨兽通常因为目标盒更大而更容易被命中，但护甲也往往更厚。
+
+目标宽度读数
+游戏里显示的目标宽度是米制读数。本计算器会按 RimWorld 每格约 1.75 米折算成水平格宽，所以 0.875 米约等于 0.5 格宽，3.5 米左右则约等于 2 格宽。
+
+目标高度
+目标高度用于垂直命中判定。瞄准躯干、头部或腿部时，计算器会把瞄准高度放在目标高度内的不同位置；如果射手技能不足、武器不支持或压制射击导致不能选择部位，实际会按躯干近似。
+
+近失 DPS
+弹道高度有效，但水平方向错过当前目标的直击伤害期望。它不代表一定会打到别的目标，只表示可能扫过旁边或后方目标的伤害潜力。
+
+纸面 DPS
+不乘命中率的理论输出。
+
+命中期望 DPS
+纸面 DPS 乘当前蒙特卡洛命中率后的期望输出。界面中的长期项包含换弹，代表长时间射击的平均输出。
+
+护甲后伤害
+把直击伤害按目标护甲减免后的估计值。当前按一个代表部位的综合护甲估算；真实 CE 会按命中部位、衣物层、覆盖率和天然护甲逐层结算，所以这里适合看趋势和大致强弱。
+
+CE 护甲机制
+锐伤先比较弹药锐穿和目标锐甲。锐穿高于锐甲时，会按剩余锐穿比例保留一部分锐伤，同时被护甲吸收的部分会产生少量钝挫伤；锐穿不足时，锐伤会被挡住，并按弹药钝穿转成钝挫伤再过钝甲。纯钝伤、范围爆炸伤、热伤和电伤则分别用自己的穿透对对应护甲做减免。
+
+钝挫伤
+锐伤被护甲吸收或挡住后产生的间接钝伤。它主要和弹药钝穿、被护甲吸收的比例、目标钝甲有关，不是简单把被挡住的锐伤原数值搬过去。
+
+范围护甲
+爆炸等范围伤害会按范围伤害自己的伤害类型和穿透过护甲。当前 DPS 里范围伤害沿用直击命中率；若护甲后范围伤害为 0，通常说明这部分被目标护甲吃掉了。
+
+弹匣内 DPS
+只看打空当前弹匣的输出，不含换弹。
+
+60 秒 DPS
+以 60 秒为观察窗口，包含预热、冷却、换弹和可能的部分弹匣。
+
+弹匣期望总伤
+打空当前弹匣时的直击期望伤害总量。
+
+单匣输出时长
+打空当前弹匣需要的时间，包含每轮预热/瞄准/冷却，不含换弹。
+
+瞄准耗时倍率
+RimWorld/CE 用于一次瞄准预热的射手倍率。数值越低，第一次瞄准越快；CE 的二次瞄准是按距离给固定 tick，本计算器不再额外乘这个倍率。
+
+换弹速度
+CE 的射手 ReloadSpeed。实际换弹耗时约为基础换弹时间乘武器换弹系数，再除以换弹速度。
+
+夜视效率
+CE 用它抵消黑暗惩罚：有效黑暗约为黑暗程度乘以（1 - 夜视效率）。100% 夜视基本忽略黑暗误差。
+
+本轮连发期望
+当前一轮连发内的期望伤害总量，不是每秒伤害。
+
+范围 DPS
+爆炸、燃烧等范围伤害的期望输出。当前版本沿用直击命中率，不模拟爆炸半径。
+
+破片纸面
+破片的理论伤害。当前不模拟破片命中率，所以只作为纸面参考。
+
+综合能见度误差
+黑暗、天气、烟雾、盲射、圆形偏离等因素合并后的目标点偏移。
+
+射程误差
+射手对距离估计不准导致的弹道高低偏差。它常主要影响垂直命中。
+
+有效枪口摆动
+实际用于射击采样的枪口摆动。瞄准射击会按瞄准精度和视野效率降低摆动；射手被压制时会增加摆动。
+
+总基础摆动
+CE 源码中的基础枪口摆动，主要由武器掌握和武器摆动系数推导，再受品质、脚架、配件等武器 stat 影响。
+
+武器掌握
+CE 使用的 ShootingAccuracyPawn。它影响基础摆动、后坐力控制，也会影响是否能手动选择目标部位。
+
+瞄准精度
+CE 使用的 AimingAccuracy。瞄准射击时，它决定能把基础摆动压低多少，也参与射程和能见度误差。
+
+视野效率
+武器瞄具效率。瞄准射击和能见度误差会用到它。
+
+FasterRepeatShots
+CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预热；本计算器默认按继续向同一方向射击近似。
+
+同方向重复射击
+当前计算器对 FasterRepeatShots 的近似条件。若频繁大角度转火，真实收益会更低。
+]]></CEHCC_GlossaryBody>
+  <CEHCC_RestoreDefaults>恢复默认</CEHCC_RestoreDefaults>
+  <CEHCC_ChooseWeapon>选择武器</CEHCC_ChooseWeapon>
+  <CEHCC_LoadSelectedWeapon>载入选中武器</CEHCC_LoadSelectedWeapon>
+  <CEHCC_LoadSelectedShooter>载入选中射手</CEHCC_LoadSelectedShooter>
+  <CEHCC_LoadSelectedTarget>载入选中目标</CEHCC_LoadSelectedTarget>
+  <CEHCC_SaveComparisonSnapshot>保存为对比快照</CEHCC_SaveComparisonSnapshot>
+  <CEHCC_CompareSelectedShooter>对比选中射手</CEHCC_CompareSelectedShooter>
+  <CEHCC_ComparisonSetBaseline>设为基准</CEHCC_ComparisonSetBaseline>
+  <CEHCC_ComparisonClear>清除对比</CEHCC_ComparisonClear>
+  <CEHCC_ComparisonLoaded>已载入对比：{0}。</CEHCC_ComparisonLoaded>
+  <CEHCC_ComparisonWeaponLabel>武器：{0}</CEHCC_ComparisonWeaponLabel>
+  <CEHCC_ComparisonShooterLabel>射手：{0}</CEHCC_ComparisonShooterLabel>
+  <CEHCC_ComparisonSnapshotLabel>当前：{0}</CEHCC_ComparisonSnapshotLabel>
+  <CEHCC_ComparisonSnapshotManual>当前手动数据</CEHCC_ComparisonSnapshotManual>
+  <CEHCC_ComparisonTitle>对比快照：{0}</CEHCC_ComparisonTitle>
+  <CEHCC_AutoRangeError>自动射程误差</CEHCC_AutoRangeError>
+  <CEHCC_ToggleAdvanced>高级选项</CEHCC_ToggleAdvanced>
+  <CEHCC_HumanTarget>人类目标</CEHCC_HumanTarget>
+  <CEHCC_TargetPresets>目标预设</CEHCC_TargetPresets>
+  <CEHCC_TargetPresetHumanUnarmored>无甲人类</CEHCC_TargetPresetHumanUnarmored>
+  <CEHCC_TargetPresetHumanFlakVest>防弹衣人类</CEHCC_TargetPresetHumanFlakVest>
+  <CEHCC_TargetPresetHumanScoutArmor>斥候甲人类</CEHCC_TargetPresetHumanScoutArmor>
+  <CEHCC_TargetPresetMechCentipede>机械蜈蚣</CEHCC_TargetPresetMechCentipede>
+  <CEHCC_TargetPresetMechScyther>机械静螳</CEHCC_TargetPresetMechScyther>
+  <CEHCC_TargetPresetDmsTarbosaurus>骇蜥（DMS）</CEHCC_TargetPresetDmsTarbosaurus>
+  <CEHCC_TargetPresetMenuLine>{0}：高 {1}m，宽 {2}m；锐 {3}，钝 {4}，热 {5}，电 {6}</CEHCC_TargetPresetMenuLine>
+  <CEHCC_TargetPresetLoaded>已载入目标预设：{0}。</CEHCC_TargetPresetLoaded>
+  <CEHCC_Recalculate>重新计算</CEHCC_Recalculate>
+  <CEHCC_LoadWeaponNoSelection>请先选中一名持枪 pawn、一座 CE 炮塔，或选中一把地上的枪械。</CEHCC_LoadWeaponNoSelection>
+  <CEHCC_LoadWeaponNoWeapon>当前选择里没有可读取的远程武器。</CEHCC_LoadWeaponNoWeapon>
+  <CEHCC_LoadWeaponNoRangedVerb>{0} 没有可读取的远程射击 verb。</CEHCC_LoadWeaponNoRangedVerb>
+  <CEHCC_LoadWeaponSuccess>已载入 {0}，弹药：{1}，品质：{2}。</CEHCC_LoadWeaponSuccess>
+  <CEHCC_LoadWeaponSuccessNoQuality>已载入 {0}，弹药：{1}，无品质。</CEHCC_LoadWeaponSuccessNoQuality>
+  <CEHCC_LoadTurretWeaponSuccess>已载入炮塔武器 {0}，弹药：{1}，内置武器品质：{2}，默认瞄准：{3}。</CEHCC_LoadTurretWeaponSuccess>
+  <CEHCC_ChooseWeaponNone>没有找到可读取的远程武器。</CEHCC_ChooseWeaponNone>
+  <CEHCC_LoadShooterNoSelection>请先选中一名射手 pawn 或一座 CE 炮塔。</CEHCC_LoadShooterNoSelection>
+  <CEHCC_LoadShooterNoPawn>当前选择里没有可读取的射手 pawn 或 CE 炮塔。</CEHCC_LoadShooterNoPawn>
+  <CEHCC_LoadShooterSuccess>已载入射手 {0}。</CEHCC_LoadShooterSuccess>
+  <CEHCC_LoadShooterTurretAutoSuccess>已载入自动炮塔 {0}。</CEHCC_LoadShooterTurretAutoSuccess>
+  <CEHCC_LoadShooterTurretMannedSuccess>已载入有人炮塔 {0}，操作员：{1}。</CEHCC_LoadShooterTurretMannedSuccess>
+  <CEHCC_LoadShooterTurretUnmannedSuccess>已载入无人操作炮塔 {0}；按炮塔自身精度近似。</CEHCC_LoadShooterTurretUnmannedSuccess>
+  <CEHCC_ShooterLabelTurretAuto>{0}（自动炮塔）</CEHCC_ShooterLabelTurretAuto>
+  <CEHCC_ShooterLabelTurretManned>{0}（操作员 {1}）</CEHCC_ShooterLabelTurretManned>
+  <CEHCC_ShooterLabelTurretUnmanned>{0}（无人操作，炮塔自身近似）</CEHCC_ShooterLabelTurretUnmanned>
+  <CEHCC_AmmoChoiceDefault>默认弹丸</CEHCC_AmmoChoiceDefault>
+  <CEHCC_AmmoChoiceCurrent>（当前）</CEHCC_AmmoChoiceCurrent>
+  <CEHCC_QualityAwful>糟糕</CEHCC_QualityAwful>
+  <CEHCC_QualityPoor>较差</CEHCC_QualityPoor>
+  <CEHCC_QualityNormal>普通</CEHCC_QualityNormal>
+  <CEHCC_QualityGood>良好</CEHCC_QualityGood>
+  <CEHCC_QualityExcellent>优秀</CEHCC_QualityExcellent>
+  <CEHCC_QualityMasterwork>大师</CEHCC_QualityMasterwork>
+  <CEHCC_QualityLegendary>传奇</CEHCC_QualityLegendary>
+  <CEHCC_LoadTargetNoSelection>请先选中一个目标 pawn 或物体。</CEHCC_LoadTargetNoSelection>
+  <CEHCC_LoadTargetSuccess>已载入 {0}：宽 {1} 米，高 {2} 米；锐甲 {3}，钝甲 {4}，热甲 {5}，电甲 {6}。</CEHCC_LoadTargetSuccess>
+  <CEHCC_CurrentManualData>手动参数</CEHCC_CurrentManualData>
+  <CEHCC_CurrentWeapon>武器：{0}</CEHCC_CurrentWeapon>
+  <CEHCC_CurrentAmmo>弹药：{0}</CEHCC_CurrentAmmo>
+  <CEHCC_CurrentShooter>射手：{0}</CEHCC_CurrentShooter>
+
+  <CEHCC_ResultSummary>蒙特卡洛首发：{0}    连发至少一发：{1}    公式近似参考：{2}</CEHCC_ResultSummary>
+  <CEHCC_CoreSummaryTitle>核心摘要</CEHCC_CoreSummaryTitle>
+  <CEHCC_CoreFirstHit>首发命中</CEHCC_CoreFirstHit>
+  <CEHCC_CoreBurstAny>连发至少一发</CEHCC_CoreBurstAny>
+  <CEHCC_CoreMagazineTime>单匣输出时长</CEHCC_CoreMagazineTime>
+  <CEHCC_CoreMagazineDps>弹匣内 DPS</CEHCC_CoreMagazineDps>
+  <CEHCC_CoreDps60>60 秒 DPS</CEHCC_CoreDps60>
+  <CEHCC_CoreLongDps>长期 DPS</CEHCC_CoreLongDps>
+  <CEHCC_CoreFireRate>持续射速</CEHCC_CoreFireRate>
+  <CEHCC_CoreMagazineDamage>弹匣期望总伤</CEHCC_CoreMagazineDamage>
+  <CEHCC_CoreAverageHit>平均命中率</CEHCC_CoreAverageHit>
+  <CEHCC_FirstHitTitle>首发命中分析</CEHCC_FirstHitTitle>
+  <CEHCC_FirstHitSummary>蒙特卡洛首发 {0}，公式近似参考 {1}。</CEHCC_FirstHitSummary>
+  <CEHCC_ComparisonFirstHit>对比 {0}：首发 {1}（{2}），水平 {3}（{4}），垂直 {5}（{6}）。</CEHCC_ComparisonFirstHit>
+  <CEHCC_TechnicalDetailsTitle>技术细节</CEHCC_TechnicalDetailsTitle>
+  <CEHCC_TechnicalFormulaReference>公式近似参考：{0}。</CEHCC_TechnicalFormulaReference>
+  <CEHCC_ComparisonTechnical>对比 {0}：有效摆动 {1}（{2}），射程误差 {3}（{4}），一次瞄准 {5}s（{6}），换弹 {7}s（{8}）。</CEHCC_ComparisonTechnical>
+  <CEHCC_ResultNoDamageData>伤害/DPS：尚未载入武器弹药，暂不计算。</CEHCC_ResultNoDamageData>
+  <CEHCC_DpsTitle>火力输出</CEHCC_DpsTitle>
+  <CEHCC_DpsRate>持续射速：{0} 发/秒（优先按弹匣、瞄准/预热、冷却和换弹估算）。</CEHCC_DpsRate>
+  <CEHCC_DpsAverageHit>平均命中率：{0}（按当前连发逐发概率平均）。</CEHCC_DpsAverageHit>
+  <CEHCC_DpsFasterRepeatShots>重复射击预热缩短：按 CE FasterRepeatShots 近似，默认继续向同一方向射击；重复预热约为原来的 {0}%。</CEHCC_DpsFasterRepeatShots>
+  <CEHCC_DpsDirectDamage>直击：{0}，纸面 {1}/发，护甲后 {2}/发。</CEHCC_DpsDirectDamage>
+  <CEHCC_DpsDirectStats>直击 DPS：纸面 {0}，命中期望 {1}，本轮连发期望 {2}。</CEHCC_DpsDirectStats>
+  <CEHCC_DpsDirectDpsStats>命中期望 DPS：弹匣内 {0}，60 秒 {1}，长期 {2}（直击 + 范围）。</CEHCC_DpsDirectDpsStats>
+  <CEHCC_DpsMagazineStats>弹匣期望总伤 {0}，单匣输出时长 {1} 秒，本轮连发期望 {2}。</CEHCC_DpsMagazineStats>
+  <CEHCC_DpsNearMissStats>近失 DPS：{0}，近失率 {1}，本轮近失期望 {2}（垂直有效但水平错过）。</CEHCC_DpsNearMissStats>
+  <CEHCC_ComparisonDps>对比 {0}：平均命中率 {1}（{2}），弹匣内 DPS {3}（{4}），60 秒 DPS {5}（{6}），近失 DPS {7}（{8}）。</CEHCC_ComparisonDps>
+  <CEHCC_DpsRangeStats>范围 DPS：合计 {0}/发，命中期望 {1}，本轮连发期望 {2}（沿用直击命中率）。</CEHCC_DpsRangeStats>
+  <CEHCC_DpsRangeNone>范围伤害：无。</CEHCC_DpsRangeNone>
+  <CEHCC_DpsFragmentStats>破片纸面：合计 {0}/发，纸面 DPS {1}（未乘命中率）。</CEHCC_DpsFragmentStats>
+  <CEHCC_DpsFragmentNone>破片：无。</CEHCC_DpsFragmentNone>
+  <CEHCC_DpsFollowupLine>- {0}：{1}/发</CEHCC_DpsFollowupLine>
+  <CEHCC_DpsMoreLines>- 还有 {0} 项未显示。</CEHCC_DpsMoreLines>
+  <CEHCC_DamageExplosionLine>爆炸 {0}，半径 {1}</CEHCC_DamageExplosionLine>
+  <CEHCC_DamageCompExplosionLine>次级爆炸 {0}，半径 {1}</CEHCC_DamageCompExplosionLine>
+  <CEHCC_DamageSecondaryLine>附带 {0}，概率 {1}</CEHCC_DamageSecondaryLine>
+  <CEHCC_DamageExtraLine>额外 {0}，概率 {1}</CEHCC_DamageExtraLine>
+  <CEHCC_DamageFragmentLine>破片 {0} x{1}</CEHCC_DamageFragmentLine>
+  <CEHCC_DamageUnknown>未知伤害</CEHCC_DamageUnknown>
+  <CEHCC_DamageNone>无</CEHCC_DamageNone>
+  <CEHCC_ArmorTitle>护甲后伤害</CEHCC_ArmorTitle>
+  <CEHCC_ArmorTarget>目标护甲：锐甲 {0} mm RHA，钝甲 {1} MPa，热甲 {2}，电甲 {3}。</CEHCC_ArmorTarget>
+  <CEHCC_ArmorNoDirectDamage>尚无可计算的直击伤害；载入武器和弹药后显示护甲后结果。</CEHCC_ArmorNoDirectDamage>
+  <CEHCC_ArmorDirectResult>直击纸面 {0}/发，护甲后 {1}/发。</CEHCC_ArmorDirectResult>
+  <CEHCC_ArmorPenetration>弹药穿透参考：{0}。</CEHCC_ArmorPenetration>
+  <CEHCC_ArmorBreakdown>伤害拆分：{0}。</CEHCC_ArmorBreakdown>
+  <CEHCC_ArmorStatus>状态：{0}</CEHCC_ArmorStatus>
+  <CEHCC_ArmorStatusPenetrated>锐伤穿透，护甲按剩余锐穿比例减伤，并产生部分钝挫伤。</CEHCC_ArmorStatusPenetrated>
+  <CEHCC_ArmorStatusDeflected>锐伤被挡住，转为钝挫伤再按钝甲减免。</CEHCC_ArmorStatusDeflected>
+  <CEHCC_ArmorStatusBlunt>本身为钝伤，直接按钝穿/钝甲比例减免。</CEHCC_ArmorStatusBlunt>
+  <CEHCC_ArmorStatusHeat>热伤按热穿/热甲比例近似减免。</CEHCC_ArmorStatusHeat>
+  <CEHCC_ArmorStatusElectric>电伤按电穿/电甲比例近似减免。</CEHCC_ArmorStatusElectric>
+  <CEHCC_ArmorStatusComposite>多段直击伤害已分别按各自穿透结算后汇总；破片不计入本框。</CEHCC_ArmorStatusComposite>
+  <CEHCC_ArmorStatusNoArmorModel>该伤害类型暂不进入锐甲/钝甲模型。</CEHCC_ArmorStatusNoArmorModel>
+  <CEHCC_ArmorApproxNote>近似说明：当前按一个代表部位的综合护甲估算；真实 CE 会按衣物层、覆盖部位和天然护甲逐层结算。</CEHCC_ArmorApproxNote>
+  <CEHCC_ResultTargetBox>使用的目标盒：宽 {0} 格，高 {1} 垂直格，瞄准高度 {2} 垂直格。综合能见度误差：{3} 格。</CEHCC_ResultTargetBox>
+  <CEHCC_ResultDerivedErrors>自动计算误差：能见度 {0} 格，预判 {1} 格，射程 {2} 格。</CEHCC_ResultDerivedErrors>
+  <CEHCC_ResultRealFireInputs>实际射击采样使用：有效枪口摆动 {0} 度，连发间隔 {1} tick，弹道重力 {2}。</CEHCC_ResultRealFireInputs>
+  <CEHCC_ResultRangeVertical>射程误差导致的最大高低偏差：{0} 垂直格（约 {1} 米）。</CEHCC_ResultRangeVertical>
+  <CEHCC_ResultAxisBreakdown>首发拆分：水平穿过 {0}，垂直穿过 {1}。</CEHCC_ResultAxisBreakdown>
+  <CEHCC_ResultObstacleFilter>路径障碍过滤：{0} 个障碍；首发被挡 {1}，连发任一被挡 {2}。{3}</CEHCC_ResultObstacleFilter>
+  <CEHCC_ResultAxisDiagnosis>当前限制：{0}。{1}</CEHCC_ResultAxisDiagnosis>
+  <CEHCC_ResultHint>提示：{0}</CEHCC_ResultHint>
+  <CEHCC_HintBurstRecoil>首发不吃后坐力，连发第 2 发以后会明显下跌。</CEHCC_HintBurstRecoil>
+  <CEHCC_HintVerticalLimited>水平已经接近饱和，当前主要受弹道高度、目标高度或射程误差限制。</CEHCC_HintVerticalLimited>
+  <CEHCC_HintHorizontalLimited>垂直已经接近饱和，当前主要受水平角度、摆动、散布、后坐力或预判限制。</CEHCC_HintHorizontalLimited>
+  <CEHCC_HintRangeVerticalSaturated>射程误差仍会变化，但垂直命中已接近饱和时，总命中率可能不明显变化。</CEHCC_HintRangeVerticalSaturated>
+  <CEHCC_HintNoVisibilityInputs>黑暗、天气、烟雾和目标移动都接近 0 时，视野效率的影响可能不明显。</CEHCC_HintNoVisibilityInputs>
+  <CEHCC_HintSingleSaturated>首发已经接近必中了，改动参数可能只在逐发或极端距离上看得出来。</CEHCC_HintSingleSaturated>
+  <CEHCC_HintVeryLow>首发命中很低，优先检查目标宽度、距离、摆动、散布和能见度误差。</CEHCC_HintVeryLow>
+  <CEHCC_HintMixed>水平和垂直都在参与限制，建议看首发拆分和逐发曲线判断主因。</CEHCC_HintMixed>
+  <CEHCC_WarnSpecialProjectile>注意：当前弹丸含 {0}，计算器仍按普通直射近似。</CEHCC_WarnSpecialProjectile>
+  <CEHCC_SpecialProjectileInstant>瞬发</CEHCC_SpecialProjectileInstant>
+  <CEHCC_SpecialProjectilePellets>{0} 个弹丸</CEHCC_SpecialProjectilePellets>
+  <CEHCC_SpecialProjectilePowered>推进/变速</CEHCC_SpecialProjectilePowered>
+  <CEHCC_SpecialProjectileTrajectory>特殊轨迹</CEHCC_SpecialProjectileTrajectory>
+  <CEHCC_SpecialProjectileShelling>炮击属性</CEHCC_SpecialProjectileShelling>
+  <CEHCC_SpecialProjectileFuze>引信/空爆修正</CEHCC_SpecialProjectileFuze>
+  <CEHCC_FasterRepeatShots>FasterRepeatShots（同方向重复射击）</CEHCC_FasterRepeatShots>
+  <CEHCC_TargetModeForcedSuppress>提示：压制射击会忽略头部/腿部选择，当前按躯干高度计算。</CEHCC_TargetModeForcedSuppress>
+  <CEHCC_TargetModeForcedSkill>提示：武器掌握 {0} 低于 2.45，CE 会忽略头部/腿部选择，当前按躯干高度计算。</CEHCC_TargetModeForcedSkill>
+  <CEHCC_ResultPerShot>逐发：{0}</CEHCC_ResultPerShot>
+  <CEHCC_ResultShotAngle>近似射击仰角：{0} 度。</CEHCC_ResultShotAngle>
+  <CEHCC_AxisHorizontal>水平命中</CEHCC_AxisHorizontal>
+  <CEHCC_AxisVertical>垂直命中</CEHCC_AxisVertical>
+  <CEHCC_AxisMixed>水平与垂直混合</CEHCC_AxisMixed>
+  <CEHCC_SaturatedBoth>水平和垂直都接近饱和。</CEHCC_SaturatedBoth>
+  <CEHCC_SaturatedHorizontal>水平已接近饱和。</CEHCC_SaturatedHorizontal>
+  <CEHCC_SaturatedVertical>垂直已接近饱和。</CEHCC_SaturatedVertical>
+  <CEHCC_SaturatedNone>没有轴接近饱和。</CEHCC_SaturatedNone>
+
+  <CEHCC_SectionShot>射击参数</CEHCC_SectionShot>
+  <CEHCC_DistanceCells>距离（格）</CEHCC_DistanceCells>
+  <CEHCC_MaxRangeCells>最大射程（格）</CEHCC_MaxRangeCells>
+  <CEHCC_ProjectileSpeed>弹丸速度（格/秒）</CEHCC_ProjectileSpeed>
+  <CEHCC_ShotHeight>枪口高度（垂直格）</CEHCC_ShotHeight>
+  <CEHCC_GravityFactor>弹丸重力倍率</CEHCC_GravityFactor>
+
+  <CEHCC_SectionWeaponShooter>武器与射手</CEHCC_SectionWeaponShooter>
+  <CEHCC_SwayDegrees>总基础摆动（度）</CEHCC_SwayDegrees>
+  <CEHCC_SpreadDegrees>机械散布（度）</CEHCC_SpreadDegrees>
+  <CEHCC_RecoilAmount>后坐力</CEHCC_RecoilAmount>
+  <CEHCC_Attachments>配件配置</CEHCC_Attachments>
+  <CEHCC_AttachmentCount>{0} 件</CEHCC_AttachmentCount>
+  <CEHCC_AttachmentClear>清空配件</CEHCC_AttachmentClear>
+  <CEHCC_AttachmentSelected>已装</CEHCC_AttachmentSelected>
+  <CEHCC_AttachmentUnselected>未装</CEHCC_AttachmentUnselected>
+  <CEHCC_AttachmentIncompatible>（槽位冲突）</CEHCC_AttachmentIncompatible>
+  <CEHCC_BipodState>脚架状态</CEHCC_BipodState>
+  <CEHCC_BipodDeployed>已展开</CEHCC_BipodDeployed>
+  <CEHCC_BipodUndeployed>未展开</CEHCC_BipodUndeployed>
+  <CEHCC_WeaponQuality>武器品质</CEHCC_WeaponQuality>
+  <CEHCC_QualityNone>无品质</CEHCC_QualityNone>
+  <CEHCC_ShootingAccuracy>武器掌握</CEHCC_ShootingAccuracy>
+  <CEHCC_AimingAccuracy>瞄准精度</CEHCC_AimingAccuracy>
+  <CEHCC_SightsEfficiency>视野效率</CEHCC_SightsEfficiency>
+  <CEHCC_AimingDelayFactor>瞄准耗时倍率</CEHCC_AimingDelayFactor>
+  <CEHCC_ReloadSpeed>换弹速度</CEHCC_ReloadSpeed>
+  <CEHCC_AimMode>瞄准模式</CEHCC_AimMode>
+  <CEHCC_TurretAimModeLocked>炮塔AI：{0}</CEHCC_TurretAimModeLocked>
+  <CEHCC_AimModeAimedShot>瞄准射击</CEHCC_AimModeAimedShot>
+  <CEHCC_AimModeSnapshot>快速射击</CEHCC_AimModeSnapshot>
+  <CEHCC_AimModeSuppressFire>压制射击</CEHCC_AimModeSuppressFire>
+
+  <CEHCC_SectionErrors>CE 误差项</CEHCC_SectionErrors>
+  <CEHCC_VisibilityError>能见度误差（格）</CEHCC_VisibilityError>
+  <CEHCC_LeadError>预判误差（格）</CEHCC_LeadError>
+  <CEHCC_RangeError>射程误差（格）</CEHCC_RangeError>
+  <CEHCC_CircularMissRadius>圆形偏离半径（格）</CEHCC_CircularMissRadius>
+  <CEHCC_IndirectFireShift>间瞄射击误差（格）</CEHCC_IndirectFireShift>
+
+  <CEHCC_SectionTargetSimulation>目标与模拟</CEHCC_SectionTargetSimulation>
+  <CEHCC_TargetHeight>目标高度（米）</CEHCC_TargetHeight>
+  <CEHCC_TargetWidth>目标宽度读数（米）</CEHCC_TargetWidth>
+  <CEHCC_TargetArmorSharp>目标锐甲（mm RHA）</CEHCC_TargetArmorSharp>
+  <CEHCC_TargetArmorBlunt>目标钝甲（MPa）</CEHCC_TargetArmorBlunt>
+  <CEHCC_TargetArmorHeat>目标热甲</CEHCC_TargetArmorHeat>
+  <CEHCC_TargetArmorElectric>目标电甲</CEHCC_TargetArmorElectric>
+  <CEHCC_TargetMode>目标部位模式</CEHCC_TargetMode>
+  <CEHCC_TargetModeTorso>躯干</CEHCC_TargetModeTorso>
+  <CEHCC_TargetModeHead>头部</CEHCC_TargetModeHead>
+  <CEHCC_TargetModeLegs>腿部</CEHCC_TargetModeLegs>
+  <CEHCC_BurstShots>连发弹数</CEHCC_BurstShots>
+  <CEHCC_BurstShotsManual>手动连发弹数</CEHCC_BurstShotsManual>
+  <CEHCC_BurstMode>射击连发模式</CEHCC_BurstMode>
+  <CEHCC_BurstModeSingle>单发（{0}）</CEHCC_BurstModeSingle>
+  <CEHCC_BurstModeShort>短点射（{0}）</CEHCC_BurstModeShort>
+  <CEHCC_BurstModeAuto>全自动/长点射（{0}）</CEHCC_BurstModeAuto>
+  <CEHCC_BurstModeCurrent>当前 {0} 发</CEHCC_BurstModeCurrent>
+  <CEHCC_Rpm>射速（RPM）</CEHCC_Rpm>
+  <CEHCC_MonteCarloSamples>蒙特卡洛样本数</CEHCC_MonteCarloSamples>
+  <CEHCC_RandomSeed>随机种子</CEHCC_RandomSeed>
+
+  <CEHCC_SectionAnalysis>分析</CEHCC_SectionAnalysis>
+  <CEHCC_AnalysisMode>分析模式</CEHCC_AnalysisMode>
+  <CEHCC_AnalysisModeNone>关闭</CEHCC_AnalysisModeNone>
+  <CEHCC_AnalysisModeDistance>距离曲线</CEHCC_AnalysisModeDistance>
+  <CEHCC_AnalysisModeBurst>连发逐发</CEHCC_AnalysisModeBurst>
+  <CEHCC_AnalysisModeTimeline>时间轴</CEHCC_AnalysisModeTimeline>
+  <CEHCC_AnalysisModeBallistic>弹道分布</CEHCC_AnalysisModeBallistic>
+  <CEHCC_AnalysisSamples>分析样本数</CEHCC_AnalysisSamples>
+  <CEHCC_AnalysisDistanceTitle>距离曲线（每点最多 {0} 样本）</CEHCC_AnalysisDistanceTitle>
+  <CEHCC_AnalysisDistanceRow>首发 {0} / 连发 {1}</CEHCC_AnalysisDistanceRow>
+  <CEHCC_AnalysisBurstTitle>连发逐发</CEHCC_AnalysisBurstTitle>
+  <CEHCC_AnalysisBurstRow>本发 {0}</CEHCC_AnalysisBurstRow>
+  <CEHCC_AnalysisBurstSingleShot>当前只有 1 发，没有逐发曲线。</CEHCC_AnalysisBurstSingleShot>
+  <CEHCC_AnalysisBallisticTitle>弹道分布（{0} 组样本，{1} 发连发）</CEHCC_AnalysisBallisticTitle>
+  <CEHCC_AnalysisBallisticHint>冷色为前段弹，灰色为中段弹，红色为后段弹。橙色块表示已采集的路径障碍物。</CEHCC_AnalysisBallisticHint>
+  <CEHCC_AnalysisBallisticImpactHint>显示目标距离处的弹着密度；越亮表示越常落在该区域。橙色块表示已采集的路径障碍物。</CEHCC_AnalysisBallisticImpactHint>
+  <CEHCC_AnalysisBallisticDensityHint>显示弹道经过区域的密度；越亮表示越多样本经过该弹道走廊。</CEHCC_AnalysisBallisticDensityHint>
+  <CEHCC_AnalysisBallisticSingleHint>单次连射显示一轮样本内从首发到末发的轨迹变化；颜色越靠后越接近红色。</CEHCC_AnalysisBallisticSingleHint>
+  <CEHCC_BallisticViewMode>显示方式</CEHCC_BallisticViewMode>
+  <CEHCC_BallisticViewImpactHeat>弹着热力</CEHCC_BallisticViewImpactHeat>
+  <CEHCC_BallisticViewTrajectoryHeat>轨迹密度</CEHCC_BallisticViewTrajectoryHeat>
+  <CEHCC_BallisticViewCloud>轨迹云</CEHCC_BallisticViewCloud>
+  <CEHCC_BallisticViewSingle>单次连射</CEHCC_BallisticViewSingle>
+  <CEHCC_BallisticSample>第 {0}/{1} 轮</CEHCC_BallisticSample>
+  <CEHCC_BallisticLegendSparse>稀疏</CEHCC_BallisticLegendSparse>
+  <CEHCC_BallisticLegendDense>密集</CEHCC_BallisticLegendDense>
+  <CEHCC_BallisticLegendEarly>前段弹</CEHCC_BallisticLegendEarly>
+  <CEHCC_BallisticLegendMiddle>中段弹</CEHCC_BallisticLegendMiddle>
+  <CEHCC_BallisticLegendLate>后段弹</CEHCC_BallisticLegendLate>
+  <CEHCC_BallisticLegendObstacle>路径障碍（{0}）</CEHCC_BallisticLegendObstacle>
+  <CEHCC_BallisticObstacleTip>{0}
+距离：{1} 格
+宽度：{2} 格
+高度：{3}-{4} 垂直格</CEHCC_BallisticObstacleTip>
+  <CEHCC_BallisticTopView>俯视：水平散布</CEHCC_BallisticTopView>
+  <CEHCC_BallisticSideView>侧视：高低弹道</CEHCC_BallisticSideView>
+  <CEHCC_BallisticShooter>射手</CEHCC_BallisticShooter>
+  <CEHCC_BallisticTargetPlane>{0} 格目标面</CEHCC_BallisticTargetPlane>
+  <CEHCC_BallisticMuzzleHeight>枪口高 {0} 格</CEHCC_BallisticMuzzleHeight>
+  <CEHCC_BallisticTargetHeight>目标高 {0} 格</CEHCC_BallisticTargetHeight>
+  <CEHCC_TimelineWindowMode>时间轴窗口</CEHCC_TimelineWindowMode>
+  <CEHCC_TimelineWindowMagazine>当前弹匣</CEHCC_TimelineWindowMagazine>
+  <CEHCC_TimelineWindow60s>60 秒</CEHCC_TimelineWindow60s>
+  <CEHCC_AnalysisTimelineTitle>时间轴：打空弹匣 {0} 发，{1} 秒（不含换弹）</CEHCC_AnalysisTimelineTitle>
+  <CEHCC_AnalysisTimelineWindowTitle>时间轴：{1} 秒窗口，预计发射 {0} 发。</CEHCC_AnalysisTimelineWindowTitle>
+  <CEHCC_AnalysisTimelineSummary>一次瞄准 {1}s（基础 {0}s），二次瞄准 {2}s，射击间隔 {3} tick，冷却 {4}s，换弹 {5}s。</CEHCC_AnalysisTimelineSummary>
+  <CEHCC_TimelineLegendWarmup>一次瞄准</CEHCC_TimelineLegendWarmup>
+  <CEHCC_TimelineLegendSecondAim>二次瞄准</CEHCC_TimelineLegendSecondAim>
+  <CEHCC_TimelineLegendFire>射击</CEHCC_TimelineLegendFire>
+  <CEHCC_TimelineLegendCooldown>冷却</CEHCC_TimelineLegendCooldown>
+  <CEHCC_TimelineLegendReload>换弹</CEHCC_TimelineLegendReload>
+  <CEHCC_TimelineRowAim>瞄准</CEHCC_TimelineRowAim>
+  <CEHCC_TimelineRowFire>射击</CEHCC_TimelineRowFire>
+  <CEHCC_TimelineRowCooldown>间隔</CEHCC_TimelineRowCooldown>
+  <CEHCC_TimelineMagazineEmpty>弹匣清空 {0}s</CEHCC_TimelineMagazineEmpty>
+  <CEHCC_TimelineWindowEnd>{0}s 结束</CEHCC_TimelineWindowEnd>
+  <CEHCC_TimelineHiddenBursts>中间还有 {0} 轮未展开，图中仍按时间刻度显示。</CEHCC_TimelineHiddenBursts>
+  <CEHCC_TimelineBurstLineAimed>第 {0} 轮（{1}）：一次瞄准 {2}-{3}s，二次瞄准至 {4}s，射击 {5}-{6}s，冷却至 {7}s。</CEHCC_TimelineBurstLineAimed>
+  <CEHCC_TimelineBurstLine>第 {0} 轮（{1}）：瞄准 {2}-{3}s，射击 {4}-{5}s，冷却至 {6}s。</CEHCC_TimelineBurstLine>
+
+  <CEHCC_SectionAdvanced>高级选项</CEHCC_SectionAdvanced>
+  <CEHCC_Darkness>黑暗程度（0-1）</CEHCC_Darkness>
+  <CEHCC_NightVisionEfficiency>夜视效率（0-1）</CEHCC_NightVisionEfficiency>
+  <CEHCC_ReloadFactor>武器换弹系数</CEHCC_ReloadFactor>
+  <CEHCC_WeatherError>天气误差（0-1）</CEHCC_WeatherError>
+  <CEHCC_SmokeDensity>烟雾浓度</CEHCC_SmokeDensity>
+  <CEHCC_TargetMoveSpeed>目标移动速度（格/秒）</CEHCC_TargetMoveSpeed>
+  <CEHCC_TargetMoveDirection>目标移动方向（度，0远离，90横向）</CEHCC_TargetMoveDirection>
+  <CEHCC_ShooterThingId>射手 thingIDNumber</CEHCC_ShooterThingId>
+  <CEHCC_SwayStartTick>摆动起始绝对 tick（-1随机）</CEHCC_SwayStartTick>
+  <CEHCC_ShooterSuppressed>射手被压制</CEHCC_ShooterSuppressed>
+  <CEHCC_BlindFiring>盲射</CEHCC_BlindFiring>
+</LanguageData>

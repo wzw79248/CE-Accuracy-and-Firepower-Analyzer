@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>CE Accuracy and Firepower Analyzer</name>
+  <author>zr</author>
+  <packageId>zr.ceaccuracyfirepoweranalyzer</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <modDependencies>
+    <li>
+      <packageId>CETeam.CombatExtended</packageId>
+      <displayName>Combat Extended</displayName>
+      <steamWorkshopUrl>steam://url/CommunityFilePage/2890901044</steamWorkshopUrl>
+    </li>
+  </modDependencies>
+  <loadAfter>
+    <li>CETeam.CombatExtended</li>
+  </loadAfter>
+  <description>
+    In-game Combat Extended hit and firepower analyzer for comparing hit chance, burst behavior, magazine output, sustained DPS, near misses, and projectile damage.
+  </description>
+</ModMetaData>

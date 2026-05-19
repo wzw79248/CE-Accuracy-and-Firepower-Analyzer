@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <MainButtonDef>
+    <defName>CEHCC_HitChanceCalculator</defName>
+    <label>analysis</label>
+    <description>Open the CE accuracy and firepower analyzer.</description>
+    <workerClass>CEHitChanceCalculator.MainButtonWorker_CEHitChanceCalculator</workerClass>
+    <order>145</order>
+    <minimized>true</minimized>
+    <validWithoutMap>true</validWithoutMap>
+  </MainButtonDef>
+</Defs>

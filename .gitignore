@@ -1,0 +1,20 @@
+# Build outputs
+Assemblies/*.dll
+Assemblies/*.pdb
+Source/bin/
+Source/obj/
+Tests/
+
+# Local CE decompile notes and temporary investigation files
+_tmp_ce_decompile/
+_tmp_ce_decompile_launch/
+*.decompiled.cs
+
+# IDE / OS files
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+Desktop.ini
+

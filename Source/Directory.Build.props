@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'CE_HitChanceCalculator.Tests'">
+    <BaseIntermediateOutputPath>obj\Tests\</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <CEHCC_SettingsCategory>CE Accuracy and Firepower Analyzer</CEHCC_SettingsCategory>
+  <CEHCC_OpenCalculator>Open analyzer</CEHCC_OpenCalculator>
+  <CEHCC_SettingsDescription>Combat Extended accuracy and firepower analyzer. Estimates hit chance, per-shot burst curves, magazine output, sustained DPS, near misses, and projectile damage.</CEHCC_SettingsDescription>
+
+  <CEHCC_WindowTitle>CE Accuracy and Firepower Analyzer</CEHCC_WindowTitle>
+  <CEHCC_GlossaryTooltip>Glossary</CEHCC_GlossaryTooltip>
+  <CEHCC_GlossaryTitle>Glossary</CEHCC_GlossaryTitle>
+  <CEHCC_GlossaryBody><![CDATA[Monte Carlo first shot
+Simulates the first bullet with many random samples. It is closer to real firing samples, but still an approximation.
+
+At least one burst hit
+Counts a burst as successful if any shot in that burst hits. This is not the average per-shot hit chance.
+
+Formula reference
+A simplified formula-based estimate. Use it as a reference only. For practical trends, prefer the Monte Carlo result.
+
+Per-shot
+The hit chance of each shot inside a burst. Later shots are affected by recoil, sway timing, and burst interval.
+
+CE recoil
+The first shot does not use recoil. From the second shot onward, CE increases recoil by the number of shots already fired. This buildup caps from the 11th shot onward. Approximate relation: recoil effect = weapon recoil x (5 - weapon handling)^(min(10, fired shots) / 6.25). RPM does not directly change this multiplier; it changes the tick interval between shots, which changes the sampled muzzle sway phase.
+
+Stabilized recoil
+A term used by this analyzer for the late part of a long burst after recoil buildup reaches its cap. It does not mean hit chance stops dropping entirely; it means later shots tend to fluctuate around a more stable level. High-recoil weapons usually require higher weapon handling to keep this stable level usable.
+
+Horizontal pass / vertical pass
+Horizontal pass means the trajectory crosses the target width. Vertical pass means the trajectory height is inside the target height. Both must pass for a direct hit.
+
+Body size and target box
+CE does not use body size as a direct hit percentage. It converts collision data into an approximate target box. Wider targets are easier to cross horizontally; taller targets have more vertical tolerance. Large mechs and beasts are often easier to hit because their target boxes are larger, but they also tend to have heavier armor.
+
+Target width readout
+The in-game target width is a metric readout. This analyzer converts it using RimWorld's approximate 1.75 meters per cell, so 0.875 m is about 0.5 cells wide, while around 3.5 m is about 2 cells wide.
+
+Target height
+Target height is used for vertical hit checks. When aiming at torso, head, or legs, the analyzer places the aim height at different points inside the target height. If skill, weapon support, or suppressive fire prevents called shots, CE effectively falls back to torso aiming.
+
+Near-miss DPS
+Expected direct damage from shots that are vertically valid but miss the current target horizontally. It does not guarantee that another target is hit; it only represents the damage potential of bullets passing beside or behind the target.
+
+Paper DPS
+Theoretical output before hit chance is applied.
+
+Expected DPS
+Paper DPS multiplied by the current Monte Carlo hit chance. Long-term entries include reloads and represent average output over prolonged firing.
+
+Post-armor damage
+Estimated direct damage after target armor reduction. This uses one representative combined armor value. Real CE resolves hit part, apparel layers, coverage, and natural armor layer by layer, so this value is best used for trends and rough strength comparisons.
+
+CE armor mechanics
+Sharp damage first compares projectile sharp penetration with target sharp armor. If penetration exceeds armor, some sharp damage remains based on remaining penetration, while the armor-absorbed part can create some blunt trauma. If penetration is insufficient, sharp damage is blocked and converted into blunt trauma using the projectile's blunt penetration, then reduced by blunt armor. Pure blunt damage, area explosions, heat damage, and electric damage use their own penetration against their matching armor category.
+
+Blunt trauma
+Indirect blunt damage caused when sharp damage is absorbed or stopped by armor. It mainly depends on projectile blunt penetration, the absorbed fraction, and target blunt armor. It is not simply the original blocked sharp damage copied over.
+
+Area armor
+Explosions and other area damage pass armor using their own damage type and penetration. In current DPS output, area damage uses the same hit chance as direct hits; explosion radius is not simulated. If post-armor area damage is 0, that usually means the target armor absorbed it.
+
+Magazine DPS
+Output while emptying the current magazine only, excluding reload.
+
+60-second DPS
+A 60-second observation window including warmup, cooldown, reloads, and partial magazines.
+
+Expected magazine damage
+Total expected direct damage while emptying the current magazine.
+
+Magazine output time
+Time required to empty the current magazine, including per-burst warmup, aiming, and cooldown, but excluding reload.
+
+Aiming delay factor
+The RimWorld/CE shooter multiplier for first aim warmup. Lower values mean faster first aim. CE's second aiming phase is a distance-based fixed tick value; this analyzer does not multiply it by this factor.
+
+Reload speed
+CE shooter ReloadSpeed. Actual reload time is approximately base reload time multiplied by weapon reload factor, then divided by reload speed.
+
+Night vision efficiency
+CE uses this to offset darkness penalties. Effective darkness is roughly darkness x (1 - night vision efficiency). 100% night vision mostly ignores darkness error.
+
+Current burst expected damage
+Total expected damage inside the current burst. This is not damage per second.
+
+Area DPS
+Expected output from explosions, fire, and other area damage. Current version uses direct-hit chance and does not simulate explosion radius.
+
+Fragment paper damage
+Theoretical fragment damage. Fragment hit chance is not simulated, so this is shown as a paper reference only.
+
+Combined visibility error
+The combined target-point offset from darkness, weather, smoke, blind firing, circular miss radius, and related factors.
+
+Range error
+Vertical trajectory error caused by inaccurate distance estimation. It often mainly affects vertical hit chance.
+
+Effective muzzle sway
+The muzzle sway actually sampled during firing. Aimed shot reduces sway using aiming accuracy and sight efficiency; suppression increases sway.
+
+Total base sway
+The base muzzle sway from CE logic. It is mainly derived from weapon handling and weapon sway factor, then affected by weapon quality, bipods, attachments, and related stats.
+
+Weapon handling
+CE's ShootingAccuracyPawn. It affects base sway, recoil control, and whether called shots are available.
+
+Aiming accuracy
+CE's AimingAccuracy. During aimed shots, it determines how much base sway can be reduced, and it also participates in range and visibility error.
+
+Sight efficiency
+Weapon sight efficiency. It is used by aimed shots and visibility error.
+
+FasterRepeatShots
+A CE setting. When enabled, repeated shots toward a similar direction have shortened later warmups. This analyzer approximates it as continuing to fire in the same direction.
+
+Same-direction repeat fire
+The approximation condition used by this analyzer for FasterRepeatShots. If the shooter frequently switches fire direction by a large angle, the real benefit will be lower.
+]]></CEHCC_GlossaryBody>
+  <CEHCC_RestoreDefaults>Reset defaults</CEHCC_RestoreDefaults>
+  <CEHCC_ChooseWeapon>Choose weapon</CEHCC_ChooseWeapon>
+  <CEHCC_LoadSelectedWeapon>Load selected weapon</CEHCC_LoadSelectedWeapon>
+  <CEHCC_LoadSelectedShooter>Load selected shooter</CEHCC_LoadSelectedShooter>
+  <CEHCC_LoadSelectedTarget>Load selected target</CEHCC_LoadSelectedTarget>
+  <CEHCC_SaveComparisonSnapshot>Save comparison snapshot</CEHCC_SaveComparisonSnapshot>
+  <CEHCC_CompareSelectedShooter>Compare selected shooter</CEHCC_CompareSelectedShooter>
+  <CEHCC_ComparisonSetBaseline>Set as baseline</CEHCC_ComparisonSetBaseline>
+  <CEHCC_ComparisonClear>Clear comparison</CEHCC_ComparisonClear>
+  <CEHCC_ComparisonLoaded>Loaded comparison: {0}.</CEHCC_ComparisonLoaded>
+  <CEHCC_ComparisonWeaponLabel>Weapon: {0}</CEHCC_ComparisonWeaponLabel>
+  <CEHCC_ComparisonShooterLabel>Shooter: {0}</CEHCC_ComparisonShooterLabel>
+  <CEHCC_ComparisonSnapshotLabel>Current: {0}</CEHCC_ComparisonSnapshotLabel>
+  <CEHCC_ComparisonSnapshotManual>Current manual data</CEHCC_ComparisonSnapshotManual>
+  <CEHCC_ComparisonTitle>Comparison snapshot: {0}</CEHCC_ComparisonTitle>
+  <CEHCC_AutoRangeError>Auto range error</CEHCC_AutoRangeError>
+  <CEHCC_ToggleAdvanced>Advanced options</CEHCC_ToggleAdvanced>
+  <CEHCC_HumanTarget>Human target</CEHCC_HumanTarget>
+  <CEHCC_TargetPresets>Target presets</CEHCC_TargetPresets>
+  <CEHCC_TargetPresetHumanUnarmored>Unarmored human</CEHCC_TargetPresetHumanUnarmored>
+  <CEHCC_TargetPresetHumanFlakVest>Human with flak vest</CEHCC_TargetPresetHumanFlakVest>
+  <CEHCC_TargetPresetHumanScoutArmor>Human with scout armor</CEHCC_TargetPresetHumanScoutArmor>
+  <CEHCC_TargetPresetMechCentipede>Mech centipede</CEHCC_TargetPresetMechCentipede>
+  <CEHCC_TargetPresetMechScyther>Mech scyther</CEHCC_TargetPresetMechScyther>
+  <CEHCC_TargetPresetDmsTarbosaurus>Tarbosaurus (DMS)</CEHCC_TargetPresetDmsTarbosaurus>
+  <CEHCC_TargetPresetMenuLine>{0}: height {1}m, width {2}m; sharp {3}, blunt {4}, heat {5}, electric {6}</CEHCC_TargetPresetMenuLine>
+  <CEHCC_TargetPresetLoaded>Loaded target preset: {0}.</CEHCC_TargetPresetLoaded>
+  <CEHCC_Recalculate>Recalculate</CEHCC_Recalculate>
+  <CEHCC_LoadWeaponNoSelection>Select an armed pawn, a CE turret, or a dropped gun first.</CEHCC_LoadWeaponNoSelection>
+  <CEHCC_LoadWeaponNoWeapon>The current selection has no readable ranged weapon.</CEHCC_LoadWeaponNoWeapon>
+  <CEHCC_LoadWeaponNoRangedVerb>{0} has no readable ranged shooting verb.</CEHCC_LoadWeaponNoRangedVerb>
+  <CEHCC_LoadWeaponSuccess>Loaded {0}, ammo: {1}, quality: {2}.</CEHCC_LoadWeaponSuccess>
+  <CEHCC_LoadWeaponSuccessNoQuality>Loaded {0}, ammo: {1}, no quality.</CEHCC_LoadWeaponSuccessNoQuality>
+  <CEHCC_LoadTurretWeaponSuccess>Loaded turret weapon {0}, ammo: {1}, built-in weapon quality: {2}, default aim: {3}.</CEHCC_LoadTurretWeaponSuccess>
+  <CEHCC_ChooseWeaponNone>No readable ranged weapons found.</CEHCC_ChooseWeaponNone>
+  <CEHCC_LoadShooterNoSelection>Select a shooter pawn or a CE turret first.</CEHCC_LoadShooterNoSelection>
+  <CEHCC_LoadShooterNoPawn>The current selection has no readable shooter pawn or CE turret.</CEHCC_LoadShooterNoPawn>
+  <CEHCC_LoadShooterSuccess>Loaded shooter {0}.</CEHCC_LoadShooterSuccess>
+  <CEHCC_LoadShooterTurretAutoSuccess>Loaded automatic turret {0}.</CEHCC_LoadShooterTurretAutoSuccess>
+  <CEHCC_LoadShooterTurretMannedSuccess>Loaded manned turret {0}, operator: {1}.</CEHCC_LoadShooterTurretMannedSuccess>
+  <CEHCC_LoadShooterTurretUnmannedSuccess>Loaded unmanned turret {0}; approximating with turret stats.</CEHCC_LoadShooterTurretUnmannedSuccess>
+  <CEHCC_ShooterLabelTurretAuto>{0} (automatic turret)</CEHCC_ShooterLabelTurretAuto>
+  <CEHCC_ShooterLabelTurretManned>{0} (operator {1})</CEHCC_ShooterLabelTurretManned>
+  <CEHCC_ShooterLabelTurretUnmanned>{0} (unmanned, turret approximation)</CEHCC_ShooterLabelTurretUnmanned>
+  <CEHCC_AmmoChoiceDefault>Default projectile</CEHCC_AmmoChoiceDefault>
+  <CEHCC_AmmoChoiceCurrent>(current)</CEHCC_AmmoChoiceCurrent>
+  <CEHCC_QualityAwful>Awful</CEHCC_QualityAwful>
+  <CEHCC_QualityPoor>Poor</CEHCC_QualityPoor>
+  <CEHCC_QualityNormal>Normal</CEHCC_QualityNormal>
+  <CEHCC_QualityGood>Good</CEHCC_QualityGood>
+  <CEHCC_QualityExcellent>Excellent</CEHCC_QualityExcellent>
+  <CEHCC_QualityMasterwork>Masterwork</CEHCC_QualityMasterwork>
+  <CEHCC_QualityLegendary>Legendary</CEHCC_QualityLegendary>
+  <CEHCC_LoadTargetNoSelection>Select a target pawn or thing first.</CEHCC_LoadTargetNoSelection>
+  <CEHCC_LoadTargetSuccess>Loaded {0}: width {1} m, height {2} m; sharp armor {3}, blunt armor {4}, heat armor {5}, electric armor {6}.</CEHCC_LoadTargetSuccess>
+  <CEHCC_CurrentManualData>Manual data</CEHCC_CurrentManualData>
+  <CEHCC_CurrentWeapon>Weapon: {0}</CEHCC_CurrentWeapon>
+  <CEHCC_CurrentAmmo>Ammo: {0}</CEHCC_CurrentAmmo>
+  <CEHCC_CurrentShooter>Shooter: {0}</CEHCC_CurrentShooter>
+
+  <CEHCC_ResultSummary>Monte Carlo first shot: {0}    At least one burst hit: {1}    Formula reference: {2}</CEHCC_ResultSummary>
+  <CEHCC_CoreSummaryTitle>Core summary</CEHCC_CoreSummaryTitle>
+  <CEHCC_CoreFirstHit>First-shot hit</CEHCC_CoreFirstHit>
+  <CEHCC_CoreBurstAny>At least one burst hit</CEHCC_CoreBurstAny>
+  <CEHCC_CoreMagazineTime>Magazine output time</CEHCC_CoreMagazineTime>
+  <CEHCC_CoreMagazineDps>Magazine DPS</CEHCC_CoreMagazineDps>
+  <CEHCC_CoreDps60>60-second DPS</CEHCC_CoreDps60>
+  <CEHCC_CoreLongDps>Long-term DPS</CEHCC_CoreLongDps>
+  <CEHCC_CoreFireRate>Sustained fire rate</CEHCC_CoreFireRate>
+  <CEHCC_CoreMagazineDamage>Expected magazine damage</CEHCC_CoreMagazineDamage>
+  <CEHCC_CoreAverageHit>Average hit chance</CEHCC_CoreAverageHit>
+  <CEHCC_FirstHitTitle>First-shot analysis</CEHCC_FirstHitTitle>
+  <CEHCC_FirstHitSummary>Monte Carlo first shot {0}, formula reference {1}.</CEHCC_FirstHitSummary>
+  <CEHCC_ComparisonFirstHit>Comparison {0}: first shot {1} ({2}), horizontal {3} ({4}), vertical {5} ({6}).</CEHCC_ComparisonFirstHit>
+  <CEHCC_TechnicalDetailsTitle>Technical details</CEHCC_TechnicalDetailsTitle>
+  <CEHCC_TechnicalFormulaReference>Formula reference: {0}.</CEHCC_TechnicalFormulaReference>
+  <CEHCC_ComparisonTechnical>Comparison {0}: effective sway {1} ({2}), range error {3} ({4}), first aim {5}s ({6}), reload {7}s ({8}).</CEHCC_ComparisonTechnical>
+  <CEHCC_ResultNoDamageData>Damage/DPS: no weapon ammo loaded yet.</CEHCC_ResultNoDamageData>
+  <CEHCC_DpsTitle>Firepower output</CEHCC_DpsTitle>
+  <CEHCC_DpsRate>Sustained fire rate: {0} shots/sec (estimated from magazine, aim/warmup, cooldown, and reload first).</CEHCC_DpsRate>
+  <CEHCC_DpsAverageHit>Average hit chance: {0} (average of current burst per-shot chances).</CEHCC_DpsAverageHit>
+  <CEHCC_DpsFasterRepeatShots>Repeat-fire warmup shortened: approximated from CE FasterRepeatShots, assuming continued fire in the same direction; repeat warmup is about {0}% of normal.</CEHCC_DpsFasterRepeatShots>
+  <CEHCC_DpsDirectDamage>Direct: {0}, paper {1}/shot, post-armor {2}/shot.</CEHCC_DpsDirectDamage>
+  <CEHCC_DpsDirectStats>Direct DPS: paper {0}, expected on hit {1}, current burst expected {2}.</CEHCC_DpsDirectStats>
+  <CEHCC_DpsDirectDpsStats>Expected DPS: magazine {0}, 60 sec {1}, long-term {2} (direct + area).</CEHCC_DpsDirectDpsStats>
+  <CEHCC_DpsMagazineStats>Expected magazine damage {0}, magazine output time {1} sec, current burst expected {2}.</CEHCC_DpsMagazineStats>
+  <CEHCC_DpsNearMissStats>Near-miss DPS: {0}, near-miss chance {1}, current burst near-miss expected {2} (vertical valid but horizontally missed).</CEHCC_DpsNearMissStats>
+  <CEHCC_ComparisonDps>Comparison {0}: average hit {1} ({2}), magazine DPS {3} ({4}), 60-second DPS {5} ({6}), near-miss DPS {7} ({8}).</CEHCC_ComparisonDps>
+  <CEHCC_DpsRangeStats>Area DPS: total {0}/shot, hit expected {1}, current burst expected {2} (using direct-hit chance).</CEHCC_DpsRangeStats>
+  <CEHCC_DpsRangeNone>Area damage: none.</CEHCC_DpsRangeNone>
+  <CEHCC_DpsFragmentStats>Fragment paper: total {0}/shot, paper DPS {1} (hit chance not applied).</CEHCC_DpsFragmentStats>
+  <CEHCC_DpsFragmentNone>Fragments: none.</CEHCC_DpsFragmentNone>
+  <CEHCC_DpsFollowupLine>- {0}: {1}/shot</CEHCC_DpsFollowupLine>
+  <CEHCC_DpsMoreLines>- {0} more entries not shown.</CEHCC_DpsMoreLines>
+  <CEHCC_DamageExplosionLine>Explosion {0}, radius {1}</CEHCC_DamageExplosionLine>
+  <CEHCC_DamageCompExplosionLine>Secondary explosion {0}, radius {1}</CEHCC_DamageCompExplosionLine>
+  <CEHCC_DamageSecondaryLine>Attached {0}, chance {1}</CEHCC_DamageSecondaryLine>
+  <CEHCC_DamageExtraLine>Extra {0}, chance {1}</CEHCC_DamageExtraLine>
+  <CEHCC_DamageFragmentLine>Fragment {0} x{1}</CEHCC_DamageFragmentLine>
+  <CEHCC_DamageUnknown>Unknown damage</CEHCC_DamageUnknown>
+  <CEHCC_DamageNone>None</CEHCC_DamageNone>
+  <CEHCC_ArmorTitle>Post-armor damage</CEHCC_ArmorTitle>
+  <CEHCC_ArmorTarget>Target armor: sharp {0} mm RHA, blunt {1} MPa, heat {2}, electric {3}.</CEHCC_ArmorTarget>
+  <CEHCC_ArmorNoDirectDamage>No direct damage can be calculated yet; load a weapon and ammo to show post-armor results.</CEHCC_ArmorNoDirectDamage>
+  <CEHCC_ArmorDirectResult>Direct paper {0}/shot, post-armor {1}/shot.</CEHCC_ArmorDirectResult>
+  <CEHCC_ArmorPenetration>Projectile penetration reference: {0}.</CEHCC_ArmorPenetration>
+  <CEHCC_ArmorBreakdown>Damage breakdown: {0}.</CEHCC_ArmorBreakdown>
+  <CEHCC_ArmorStatus>Status: {0}</CEHCC_ArmorStatus>
+  <CEHCC_ArmorStatusPenetrated>Sharp damage penetrates; armor reduces it by remaining sharp penetration and creates some blunt trauma.</CEHCC_ArmorStatusPenetrated>
+  <CEHCC_ArmorStatusDeflected>Sharp damage is stopped, converted to blunt trauma, then reduced by blunt armor.</CEHCC_ArmorStatusDeflected>
+  <CEHCC_ArmorStatusBlunt>This is blunt damage and is reduced directly by blunt penetration versus blunt armor.</CEHCC_ArmorStatusBlunt>
+  <CEHCC_ArmorStatusHeat>Heat damage is approximately reduced by heat penetration versus heat armor.</CEHCC_ArmorStatusHeat>
+  <CEHCC_ArmorStatusElectric>Electric damage is approximately reduced by electric penetration versus electric armor.</CEHCC_ArmorStatusElectric>
+  <CEHCC_ArmorStatusComposite>Multiple direct damage segments were resolved by their own penetration and summed; fragments are not included in this panel.</CEHCC_ArmorStatusComposite>
+  <CEHCC_ArmorStatusNoArmorModel>This damage type is not currently handled by the sharp/blunt armor model.</CEHCC_ArmorStatusNoArmorModel>
+  <CEHCC_ArmorApproxNote>Approximation: this uses one representative combined armor value. Real CE resolves apparel layers, covered parts, and natural armor layer by layer.</CEHCC_ArmorApproxNote>
+  <CEHCC_ResultTargetBox>Target box used: width {0} cells, height {1} vertical cells, aim height {2} vertical cells. Combined visibility error: {3} cells.</CEHCC_ResultTargetBox>
+  <CEHCC_ResultDerivedErrors>Auto calculated errors: visibility {0} cells, lead {1} cells, range {2} cells.</CEHCC_ResultDerivedErrors>
+  <CEHCC_ResultRealFireInputs>Actual firing samples use: effective muzzle sway {0} deg, burst interval {1} ticks, projectile gravity {2}.</CEHCC_ResultRealFireInputs>
+  <CEHCC_ResultRangeVertical>Maximum vertical offset from range error: {0} vertical cells (about {1} m).</CEHCC_ResultRangeVertical>
+  <CEHCC_ResultAxisBreakdown>First-shot split: horizontal pass {0}, vertical pass {1}.</CEHCC_ResultAxisBreakdown>
+  <CEHCC_ResultObstacleFilter>Line-of-fire obstacle filter: {0} obstacles; first shot blocked {1}, any burst shot blocked {2}. {3}</CEHCC_ResultObstacleFilter>
+  <CEHCC_ResultAxisDiagnosis>Current limiter: {0}. {1}</CEHCC_ResultAxisDiagnosis>
+  <CEHCC_ResultHint>Hint: {0}</CEHCC_ResultHint>
+  <CEHCC_HintBurstRecoil>The first shot ignores recoil; shots from the second onward can drop sharply.</CEHCC_HintBurstRecoil>
+  <CEHCC_HintVerticalLimited>Horizontal chance is near saturation; current result is mostly limited by trajectory height, target height, or range error.</CEHCC_HintVerticalLimited>
+  <CEHCC_HintHorizontalLimited>Vertical chance is near saturation; current result is mostly limited by horizontal angle, sway, spread, recoil, or lead error.</CEHCC_HintHorizontalLimited>
+  <CEHCC_HintRangeVerticalSaturated>Range error may still change, but total hit chance may barely move when vertical hit chance is already near saturation.</CEHCC_HintRangeVerticalSaturated>
+  <CEHCC_HintNoVisibilityInputs>When darkness, weather, smoke, and target movement are near 0, sight efficiency may have little visible effect.</CEHCC_HintNoVisibilityInputs>
+  <CEHCC_HintSingleSaturated>First-shot hit chance is already near guaranteed; parameter changes may only show in per-shot bursts or extreme ranges.</CEHCC_HintSingleSaturated>
+  <CEHCC_HintVeryLow>First-shot hit chance is very low. Check target width, distance, sway, spread, and visibility error first.</CEHCC_HintVeryLow>
+  <CEHCC_HintMixed>Both horizontal and vertical axes are limiting the result. Check the first-shot split and per-shot curve for the main cause.</CEHCC_HintMixed>
+  <CEHCC_WarnSpecialProjectile>Note: current projectile contains {0}; analyzer still approximates it as ordinary direct fire.</CEHCC_WarnSpecialProjectile>
+  <CEHCC_SpecialProjectileInstant>instant</CEHCC_SpecialProjectileInstant>
+  <CEHCC_SpecialProjectilePellets>{0} pellets</CEHCC_SpecialProjectilePellets>
+  <CEHCC_SpecialProjectilePowered>powered/variable speed</CEHCC_SpecialProjectilePowered>
+  <CEHCC_SpecialProjectileTrajectory>special trajectory</CEHCC_SpecialProjectileTrajectory>
+  <CEHCC_SpecialProjectileShelling>shelling properties</CEHCC_SpecialProjectileShelling>
+  <CEHCC_SpecialProjectileFuze>fuze/airburst correction</CEHCC_SpecialProjectileFuze>
+  <CEHCC_FasterRepeatShots>FasterRepeatShots (same-direction repeat fire)</CEHCC_FasterRepeatShots>
+  <CEHCC_TargetModeForcedSuppress>Hint: suppressive fire ignores head/leg selection; currently using torso height.</CEHCC_TargetModeForcedSuppress>
+  <CEHCC_TargetModeForcedSkill>Hint: weapon handling {0} is below 2.45; CE ignores head/leg selection, currently using torso height.</CEHCC_TargetModeForcedSkill>
+  <CEHCC_ResultPerShot>Per-shot: {0}</CEHCC_ResultPerShot>
+  <CEHCC_ResultShotAngle>Approximate firing elevation: {0} degrees.</CEHCC_ResultShotAngle>
+  <CEHCC_AxisHorizontal>horizontal hit</CEHCC_AxisHorizontal>
+  <CEHCC_AxisVertical>vertical hit</CEHCC_AxisVertical>
+  <CEHCC_AxisMixed>mixed horizontal and vertical</CEHCC_AxisMixed>
+  <CEHCC_SaturatedBoth>Both horizontal and vertical are near saturation.</CEHCC_SaturatedBoth>
+  <CEHCC_SaturatedHorizontal>Horizontal is near saturation.</CEHCC_SaturatedHorizontal>
+  <CEHCC_SaturatedVertical>Vertical is near saturation.</CEHCC_SaturatedVertical>
+  <CEHCC_SaturatedNone>No axis is near saturation.</CEHCC_SaturatedNone>
+
+  <CEHCC_SectionShot>Shot parameters</CEHCC_SectionShot>
+  <CEHCC_DistanceCells>Distance (cells)</CEHCC_DistanceCells>
+  <CEHCC_MaxRangeCells>Maximum range (cells)</CEHCC_MaxRangeCells>
+  <CEHCC_ProjectileSpeed>Projectile speed (cells/sec)</CEHCC_ProjectileSpeed>
+  <CEHCC_ShotHeight>Muzzle height (vertical cells)</CEHCC_ShotHeight>
+  <CEHCC_GravityFactor>Projectile gravity multiplier</CEHCC_GravityFactor>
+
+  <CEHCC_SectionWeaponShooter>Weapon and shooter</CEHCC_SectionWeaponShooter>
+  <CEHCC_SwayDegrees>Total base sway (deg)</CEHCC_SwayDegrees>
+  <CEHCC_SpreadDegrees>Mechanical spread (deg)</CEHCC_SpreadDegrees>
+  <CEHCC_RecoilAmount>Recoil</CEHCC_RecoilAmount>
+  <CEHCC_Attachments>Attachment setup</CEHCC_Attachments>
+  <CEHCC_AttachmentCount>{0} items</CEHCC_AttachmentCount>
+  <CEHCC_AttachmentClear>Clear attachments</CEHCC_AttachmentClear>
+  <CEHCC_AttachmentSelected>Installed</CEHCC_AttachmentSelected>
+  <CEHCC_AttachmentUnselected>Not installed</CEHCC_AttachmentUnselected>
+  <CEHCC_AttachmentIncompatible>(slot conflict)</CEHCC_AttachmentIncompatible>
+  <CEHCC_BipodState>Bipod state</CEHCC_BipodState>
+  <CEHCC_BipodDeployed>Deployed</CEHCC_BipodDeployed>
+  <CEHCC_BipodUndeployed>Undeployed</CEHCC_BipodUndeployed>
+  <CEHCC_WeaponQuality>Weapon quality</CEHCC_WeaponQuality>
+  <CEHCC_QualityNone>No quality</CEHCC_QualityNone>
+  <CEHCC_ShootingAccuracy>Weapon handling</CEHCC_ShootingAccuracy>
+  <CEHCC_AimingAccuracy>Aiming accuracy</CEHCC_AimingAccuracy>
+  <CEHCC_SightsEfficiency>Sight efficiency</CEHCC_SightsEfficiency>
+  <CEHCC_AimingDelayFactor>Aiming delay factor</CEHCC_AimingDelayFactor>
+  <CEHCC_ReloadSpeed>Reload speed</CEHCC_ReloadSpeed>
+  <CEHCC_AimMode>Aim mode</CEHCC_AimMode>
+  <CEHCC_TurretAimModeLocked>Turret AI: {0}</CEHCC_TurretAimModeLocked>
+  <CEHCC_AimModeAimedShot>Aimed shot</CEHCC_AimModeAimedShot>
+  <CEHCC_AimModeSnapshot>Snapshot</CEHCC_AimModeSnapshot>
+  <CEHCC_AimModeSuppressFire>Suppressive fire</CEHCC_AimModeSuppressFire>
+
+  <CEHCC_SectionErrors>CE error terms</CEHCC_SectionErrors>
+  <CEHCC_VisibilityError>Visibility error (cells)</CEHCC_VisibilityError>
+  <CEHCC_LeadError>Lead error (cells)</CEHCC_LeadError>
+  <CEHCC_RangeError>Range error (cells)</CEHCC_RangeError>
+  <CEHCC_CircularMissRadius>Circular miss radius (cells)</CEHCC_CircularMissRadius>
+  <CEHCC_IndirectFireShift>Indirect fire error (cells)</CEHCC_IndirectFireShift>
+
+  <CEHCC_SectionTargetSimulation>Target and simulation</CEHCC_SectionTargetSimulation>
+  <CEHCC_TargetHeight>Target height (m)</CEHCC_TargetHeight>
+  <CEHCC_TargetWidth>Target width readout (m)</CEHCC_TargetWidth>
+  <CEHCC_TargetArmorSharp>Target sharp armor (mm RHA)</CEHCC_TargetArmorSharp>
+  <CEHCC_TargetArmorBlunt>Target blunt armor (MPa)</CEHCC_TargetArmorBlunt>
+  <CEHCC_TargetArmorHeat>Target heat armor</CEHCC_TargetArmorHeat>
+  <CEHCC_TargetArmorElectric>Target electric armor</CEHCC_TargetArmorElectric>
+  <CEHCC_TargetMode>Target part mode</CEHCC_TargetMode>
+  <CEHCC_TargetModeTorso>Torso</CEHCC_TargetModeTorso>
+  <CEHCC_TargetModeHead>Head</CEHCC_TargetModeHead>
+  <CEHCC_TargetModeLegs>Legs</CEHCC_TargetModeLegs>
+  <CEHCC_BurstShots>Burst shots</CEHCC_BurstShots>
+  <CEHCC_BurstShotsManual>Manual burst shots</CEHCC_BurstShotsManual>
+  <CEHCC_BurstMode>Fire burst mode</CEHCC_BurstMode>
+  <CEHCC_BurstModeSingle>Single shot ({0})</CEHCC_BurstModeSingle>
+  <CEHCC_BurstModeShort>Short burst ({0})</CEHCC_BurstModeShort>
+  <CEHCC_BurstModeAuto>Full auto / long burst ({0})</CEHCC_BurstModeAuto>
+  <CEHCC_BurstModeCurrent>Current {0} shots</CEHCC_BurstModeCurrent>
+  <CEHCC_Rpm>Rate of fire (RPM)</CEHCC_Rpm>
+  <CEHCC_MonteCarloSamples>Monte Carlo samples</CEHCC_MonteCarloSamples>
+  <CEHCC_RandomSeed>Random seed</CEHCC_RandomSeed>
+
+  <CEHCC_SectionAnalysis>Analysis</CEHCC_SectionAnalysis>
+  <CEHCC_AnalysisMode>Analysis mode</CEHCC_AnalysisMode>
+  <CEHCC_AnalysisModeNone>Off</CEHCC_AnalysisModeNone>
+  <CEHCC_AnalysisModeDistance>Distance curve</CEHCC_AnalysisModeDistance>
+  <CEHCC_AnalysisModeBurst>Per-shot burst</CEHCC_AnalysisModeBurst>
+  <CEHCC_AnalysisModeTimeline>Timeline</CEHCC_AnalysisModeTimeline>
+  <CEHCC_AnalysisModeBallistic>Ballistic distribution</CEHCC_AnalysisModeBallistic>
+  <CEHCC_AnalysisSamples>Analysis samples</CEHCC_AnalysisSamples>
+  <CEHCC_AnalysisDistanceTitle>Distance curve (up to {0} samples per point)</CEHCC_AnalysisDistanceTitle>
+  <CEHCC_AnalysisDistanceRow>First shot {0} / burst {1}</CEHCC_AnalysisDistanceRow>
+  <CEHCC_AnalysisBurstTitle>Per-shot burst</CEHCC_AnalysisBurstTitle>
+  <CEHCC_AnalysisBurstRow>This shot {0}</CEHCC_AnalysisBurstRow>
+  <CEHCC_AnalysisBurstSingleShot>Current burst has only 1 shot, so there is no per-shot curve.</CEHCC_AnalysisBurstSingleShot>
+  <CEHCC_AnalysisBallisticTitle>Ballistic distribution ({0} sample groups, {1} burst shots)</CEHCC_AnalysisBallisticTitle>
+  <CEHCC_AnalysisBallisticHint>Cool colors are early shots, gray is middle shots, red is late shots. Orange blocks are collected line-of-fire obstacles.</CEHCC_AnalysisBallisticHint>
+  <CEHCC_AnalysisBallisticImpactHint>Shows impact density at target range; brighter areas are hit more often. Orange blocks are collected line-of-fire obstacles.</CEHCC_AnalysisBallisticImpactHint>
+  <CEHCC_AnalysisBallisticDensityHint>Shows density of areas crossed by trajectories; brighter areas are crossed by more samples.</CEHCC_AnalysisBallisticDensityHint>
+  <CEHCC_AnalysisBallisticSingleHint>Single burst shows how one sampled burst moves from first shot to last shot; later shots shift toward red.</CEHCC_AnalysisBallisticSingleHint>
+  <CEHCC_BallisticViewMode>Display mode</CEHCC_BallisticViewMode>
+  <CEHCC_BallisticViewImpactHeat>Impact heatmap</CEHCC_BallisticViewImpactHeat>
+  <CEHCC_BallisticViewTrajectoryHeat>Trajectory density</CEHCC_BallisticViewTrajectoryHeat>
+  <CEHCC_BallisticViewCloud>Trajectory cloud</CEHCC_BallisticViewCloud>
+  <CEHCC_BallisticViewSingle>Single burst</CEHCC_BallisticViewSingle>
+  <CEHCC_BallisticSample>Sample {0}/{1}</CEHCC_BallisticSample>
+  <CEHCC_BallisticLegendSparse>Sparse</CEHCC_BallisticLegendSparse>
+  <CEHCC_BallisticLegendDense>Dense</CEHCC_BallisticLegendDense>
+  <CEHCC_BallisticLegendEarly>Early shots</CEHCC_BallisticLegendEarly>
+  <CEHCC_BallisticLegendMiddle>Middle shots</CEHCC_BallisticLegendMiddle>
+  <CEHCC_BallisticLegendLate>Late shots</CEHCC_BallisticLegendLate>
+  <CEHCC_BallisticLegendObstacle>Path obstacles ({0})</CEHCC_BallisticLegendObstacle>
+  <CEHCC_BallisticObstacleTip>{0}
+Distance: {1} cells
+Width: {2} cells
+Height: {3}-{4} vertical cells</CEHCC_BallisticObstacleTip>
+  <CEHCC_BallisticTopView>Top view: horizontal spread</CEHCC_BallisticTopView>
+  <CEHCC_BallisticSideView>Side view: vertical trajectory</CEHCC_BallisticSideView>
+  <CEHCC_BallisticShooter>Shooter</CEHCC_BallisticShooter>
+  <CEHCC_BallisticTargetPlane>{0}-cell target plane</CEHCC_BallisticTargetPlane>
+  <CEHCC_BallisticMuzzleHeight>Muzzle height {0} cells</CEHCC_BallisticMuzzleHeight>
+  <CEHCC_BallisticTargetHeight>Target height {0} cells</CEHCC_BallisticTargetHeight>
+  <CEHCC_TimelineWindowMode>Timeline window</CEHCC_TimelineWindowMode>
+  <CEHCC_TimelineWindowMagazine>Current magazine</CEHCC_TimelineWindowMagazine>
+  <CEHCC_TimelineWindow60s>60 seconds</CEHCC_TimelineWindow60s>
+  <CEHCC_AnalysisTimelineTitle>Timeline: emptying magazine, {0} shots, {1} sec (reload excluded)</CEHCC_AnalysisTimelineTitle>
+  <CEHCC_AnalysisTimelineWindowTitle>Timeline: {1}-second window, expected {0} shots fired.</CEHCC_AnalysisTimelineWindowTitle>
+  <CEHCC_AnalysisTimelineSummary>First aim {1}s (base {0}s), second aim {2}s, shot interval {3} ticks, cooldown {4}s, reload {5}s.</CEHCC_AnalysisTimelineSummary>
+  <CEHCC_TimelineLegendWarmup>First aim</CEHCC_TimelineLegendWarmup>
+  <CEHCC_TimelineLegendSecondAim>Second aim</CEHCC_TimelineLegendSecondAim>
+  <CEHCC_TimelineLegendFire>Firing</CEHCC_TimelineLegendFire>
+  <CEHCC_TimelineLegendCooldown>Cooldown</CEHCC_TimelineLegendCooldown>
+  <CEHCC_TimelineLegendReload>Reload</CEHCC_TimelineLegendReload>
+  <CEHCC_TimelineRowAim>Aim</CEHCC_TimelineRowAim>
+  <CEHCC_TimelineRowFire>Fire</CEHCC_TimelineRowFire>
+  <CEHCC_TimelineRowCooldown>Interval</CEHCC_TimelineRowCooldown>
+  <CEHCC_TimelineMagazineEmpty>Magazine empty {0}s</CEHCC_TimelineMagazineEmpty>
+  <CEHCC_TimelineWindowEnd>{0}s end</CEHCC_TimelineWindowEnd>
+  <CEHCC_TimelineHiddenBursts>{0} middle bursts are omitted from the text list; the chart still uses the full time scale.</CEHCC_TimelineHiddenBursts>
+  <CEHCC_TimelineBurstLineAimed>Burst {0} ({1}): first aim {2}-{3}s, second aim until {4}s, fire {5}-{6}s, cooldown until {7}s.</CEHCC_TimelineBurstLineAimed>
+  <CEHCC_TimelineBurstLine>Burst {0} ({1}): aim {2}-{3}s, fire {4}-{5}s, cooldown until {6}s.</CEHCC_TimelineBurstLine>
+
+  <CEHCC_SectionAdvanced>Advanced options</CEHCC_SectionAdvanced>
+  <CEHCC_Darkness>Darkness (0-1)</CEHCC_Darkness>
+  <CEHCC_NightVisionEfficiency>Night vision efficiency (0-1)</CEHCC_NightVisionEfficiency>
+  <CEHCC_ReloadFactor>Weapon reload factor</CEHCC_ReloadFactor>
+  <CEHCC_WeatherError>Weather error (0-1)</CEHCC_WeatherError>
+  <CEHCC_SmokeDensity>Smoke density</CEHCC_SmokeDensity>
+  <CEHCC_TargetMoveSpeed>Target move speed (cells/sec)</CEHCC_TargetMoveSpeed>
+  <CEHCC_TargetMoveDirection>Target move direction (deg, 0 away, 90 lateral)</CEHCC_TargetMoveDirection>
+  <CEHCC_ShooterThingId>Shooter thingIDNumber</CEHCC_ShooterThingId>
+  <CEHCC_SwayStartTick>Sway start absolute tick (-1 random)</CEHCC_SwayStartTick>
+  <CEHCC_ShooterSuppressed>Shooter suppressed</CEHCC_ShooterSuppressed>
+  <CEHCC_BlindFiring>Blind firing</CEHCC_BlindFiring>
+</LanguageData>
