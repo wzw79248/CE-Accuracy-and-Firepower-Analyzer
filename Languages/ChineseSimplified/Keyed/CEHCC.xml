@@ -198,6 +198,7 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_CoreFireRate>持续射速</CEHCC_CoreFireRate>
   <CEHCC_CoreMagazineDamage>弹匣期望总伤</CEHCC_CoreMagazineDamage>
   <CEHCC_CoreAverageHit>平均命中率</CEHCC_CoreAverageHit>
+  <CEHCC_CoreLaserNotice>激光机制：直接伤害会随距离和散布衰减，当前倍率约 {0}。衰减公式：min(1, (sin0.03° + 0.03)^2 / (距离 × sin(散布/2) + 0.03)^2)。命中后热伤害还会按热甲减免，近似公式：护甲后伤害 = 衰减后伤害 × clamp((热穿 - 热甲) / 热穿, 0, 1)。超织物等高热甲装备会明显压低护甲后激光伤害。</CEHCC_CoreLaserNotice>
   <CEHCC_FirstHitTitle>首发命中分析</CEHCC_FirstHitTitle>
   <CEHCC_FirstHitSummary>蒙特卡洛首发 {0}，公式近似参考 {1}。</CEHCC_FirstHitSummary>
   <CEHCC_ComparisonFirstHit>对比 {0}：首发 {1}（{2}），水平 {3}（{4}），垂直 {5}（{6}）。</CEHCC_ComparisonFirstHit>

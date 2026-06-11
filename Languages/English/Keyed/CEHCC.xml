@@ -198,6 +198,7 @@ The approximation condition used by this analyzer for FasterRepeatShots. If the 
   <CEHCC_CoreFireRate>Sustained fire rate</CEHCC_CoreFireRate>
   <CEHCC_CoreMagazineDamage>Expected magazine damage</CEHCC_CoreMagazineDamage>
   <CEHCC_CoreAverageHit>Average hit chance</CEHCC_CoreAverageHit>
+  <CEHCC_CoreLaserNotice>Laser note: direct damage falls off with range and spread; current multiplier is about {0}. Falloff formula: min(1, (sin0.03deg + 0.03)^2 / (range * sin(spread/2) + 0.03)^2). After impact, heat damage is reduced by heat armor. Approx formula: post-armor damage = post-falloff damage * clamp((heat penetration - heat armor) / heat penetration, 0, 1). Hyperweave and other high-heat-armor gear can sharply lower post-armor laser damage.</CEHCC_CoreLaserNotice>
   <CEHCC_FirstHitTitle>First-shot analysis</CEHCC_FirstHitTitle>
   <CEHCC_FirstHitSummary>Monte Carlo first shot {0}, formula reference {1}.</CEHCC_FirstHitSummary>
   <CEHCC_ComparisonFirstHit>Comparison {0}: first shot {1} ({2}), horizontal {3} ({4}), vertical {5} ({6}).</CEHCC_ComparisonFirstHit>

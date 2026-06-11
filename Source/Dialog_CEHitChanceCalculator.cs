@@ -215,6 +215,13 @@ namespace CEHitChanceCalculator
             Rect coreRect = new Rect(0f, outputY, outputViewRect.width, CoreSummaryHeight(result));
             DrawCoreSummary(coreRect, result);
             outputY = coreRect.yMax + 8f;
+            DpsResult coreDps = DpsCalculator.Calculate(loadedDamageProfile ?? DamageProfile.Empty, input, result);
+            if (ShouldShowLaserCoreNotice(coreDps))
+            {
+                Rect laserNoticeRect = new Rect(0f, outputY, outputViewRect.width, LaserCoreNoticeHeight(coreDps, outputViewRect.width));
+                DrawLaserCoreNotice(laserNoticeRect, coreDps);
+                outputY = laserNoticeRect.yMax + 8f;
+            }
             DrawAnalysisPanel(ref outputY, outputViewRect.width, result);
             Rect firstHitRect = new Rect(0f, outputY, outputViewRect.width, FirstHitAnalysisHeight(result));
             DrawFirstHitAnalysis(firstHitRect, result);
@@ -871,6 +878,30 @@ namespace CEHitChanceCalculator
             return comparisonSnapshot == null ? 16f + 24f + 48f + 48f + 44f : 16f + 24f + 48f + 48f + 52f + 24f + 48f + 48f + 44f;
         }
 
+        private void DrawLaserCoreNotice(Rect rect, DpsResult dps)
+        {
+            Widgets.DrawMenuSection(rect);
+            float x = rect.x + 12f;
+            float y = rect.y + 8f;
+            DrawWrappedLabel(ref y, x, rect.width - 24f, LaserCoreNoticeText(dps));
+        }
+
+        private float LaserCoreNoticeHeight(DpsResult dps, float width)
+        {
+            return 16f + WrappedLabelHeight(LaserCoreNoticeText(dps), width - 24f);
+        }
+
+        private bool ShouldShowLaserCoreNotice(DpsResult dps)
+        {
+            return dps != null && dps.HasLaserDamageFalloff;
+        }
+
+        private string LaserCoreNoticeText(DpsResult dps)
+        {
+            return "CEHCC_CoreLaserNotice".Translate(
+                Percent(dps.LaserDamageFalloffMultiplier)).ToString();
+        }
+
         private float FirstHitAnalysisHeight(HitChanceResult result)
         {
             int lines = 7;
@@ -995,7 +1026,13 @@ namespace CEHitChanceCalculator
 
         private float GetOutputViewHeight(HitChanceResult result, float width)
         {
-            float height = CurrentLoadoutHeight + 8f + CoreSummaryHeight(result) + 8f + FirstHitAnalysisHeight(result) + 8f + ArmorResultsHeight(width) + 8f + DpsHeight(width, result) + 8f + TechnicalDetailsHeight(result) + 8f;
+            DpsResult coreDps = DpsCalculator.Calculate(loadedDamageProfile ?? DamageProfile.Empty, input, result);
+            float height = CurrentLoadoutHeight + 8f + CoreSummaryHeight(result) + 8f;
+            if (ShouldShowLaserCoreNotice(coreDps))
+            {
+                height += LaserCoreNoticeHeight(coreDps, width) + 8f;
+            }
+            height += FirstHitAnalysisHeight(result) + 8f + ArmorResultsHeight(width) + 8f + DpsHeight(width, result) + 8f + TechnicalDetailsHeight(result) + 8f;
             if (input.AnalysisMode != HitChanceAnalysisMode.None)
             {
                 height += CalculateAnalysisHeight() + 8f;
