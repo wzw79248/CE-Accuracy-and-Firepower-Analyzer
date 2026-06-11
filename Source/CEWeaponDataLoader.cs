@@ -285,13 +285,16 @@ namespace CEHitChanceCalculator
             ProjectilePropertiesCE projectilePropsCE = projectileProps as ProjectilePropertiesCE;
             VerbPropertiesCE verbPropsCE = verbProps as VerbPropertiesCE;
             CompProperties_BipodComp bipodProps = statWeapon.def.GetCompProperties<CompProperties_BipodComp>();
+            bool instantProjectile = IsInstantProjectile(projectile, projectilePropsCE);
 
             input.MaxRangeCells = CalculateEffectiveRange(statWeapon, verbProps, projectilePropsCE, bipodProps, bipodDeployed);
             if (projectileProps != null)
             {
                 input.ShotSpeedCellsPerSecond = Mathf.Max(1f, projectileProps.speed);
             }
-            input.GravityFactor = projectilePropsCE?.gravityFactor ?? 1f;
+            input.InstantProjectile = instantProjectile;
+            input.InstantProjectileIgnoresMechanicalSpread = instantProjectile && projectilePropsCE != null && projectilePropsCE.damageFalloff;
+            input.GravityFactor = instantProjectile ? 0f : projectilePropsCE?.gravityFactor ?? 1f;
             input.SpreadDegrees = CalculateSpread(statWeapon, projectilePropsCE);
             input.RecoilAmount = CalculateRecoil(statWeapon, verbPropsCE, projectilePropsCE, bipodProps, bipodDeployed);
             input.SightsEfficiency = Mathf.Max(0.02f, statWeapon.GetStatValue(CE_StatDefOf.SightsEfficiency));
@@ -327,6 +330,7 @@ namespace CEHitChanceCalculator
             int pelletCount = Mathf.Max(1, projectilePropsCE?.pelletCount ?? 1);
             int directDamage = Mathf.Max(0, projectileProps.GetDamageAmount(statWeapon, null));
             bool hasExplosion = projectileProps.explosionRadius > 0f;
+            bool laserDamageFalloff = IsInstantProjectile(projectile, projectilePropsCE) && projectilePropsCE?.damageFalloff == true;
             var profile = new DamageProfile
             {
                 SourceLabel = projectile != null ? projectile.LabelCap.ToString() : "",
@@ -335,13 +339,15 @@ namespace CEHitChanceCalculator
             };
             if (!hasExplosion && directDamage > 0)
             {
-                profile.DirectLines.Add(MakeDamageLine(
+                DamageLine directLine = MakeDamageLine(
                     profile.DirectLabel,
                     directDamage * pelletCount,
                     projectileProps.damageDef,
                     projectilePropsCE,
                     pelletCount,
-                    true));
+                    true);
+                directLine.UsesLaserDamageFalloff = laserDamageFalloff;
+                profile.DirectLines.Add(directLine);
             }
 
             if (hasExplosion)
@@ -498,20 +504,32 @@ namespace CEHitChanceCalculator
             VerbProperties verbProps = GetPrimaryRangedVerbProps(weapon);
             ThingDef projectile = ammoChoice?.Projectile ?? verbProps?.defaultProjectile;
             ProjectilePropertiesCE props = projectile?.projectile as ProjectilePropertiesCE;
+            bool instantProjectile = IsInstantProjectile(projectile, props);
             if (props == null)
             {
                 return null;
             }
 
             string reasons = "";
-            AddReason(ref reasons, props.isInstant, "CEHCC_SpecialProjectileInstant".Translate());
             AddReason(ref reasons, props.pelletCount > 1, "CEHCC_SpecialProjectilePellets".Translate(props.pelletCount));
             AddReason(ref reasons, props.fuelTicks > 0 || Mathf.Abs(props.speedGain) > 0.001f, "CEHCC_SpecialProjectilePowered".Translate());
             AddReason(ref reasons, props.trajectoryWorker != null || !props.lerpPosition.NullOrEmpty(), "CEHCC_SpecialProjectileTrajectory".Translate());
             AddReason(ref reasons, props.shellingProps != null, "CEHCC_SpecialProjectileShelling".Translate());
             AddReason(ref reasons, props.aimHeightOffset != 0f || props.airburstDistanceOffset != 0f, "CEHCC_SpecialProjectileFuze".Translate());
 
-            return reasons.NullOrEmpty() ? null : "CEHCC_WarnSpecialProjectile".Translate(reasons);
+            string instantNote = instantProjectile ? "CEHCC_NoteInstantProjectile".Translate().ToString() : "";
+            if (reasons.NullOrEmpty())
+            {
+                return instantNote.NullOrEmpty() ? null : instantNote;
+            }
+
+            string warning = "CEHCC_WarnSpecialProjectile".Translate(reasons);
+            return instantNote.NullOrEmpty() ? warning : instantNote + " " + warning;
+        }
+
+        private static bool IsInstantProjectile(ThingDef projectile, ProjectilePropertiesCE props)
+        {
+            return props?.isInstant == true || projectile?.thingClass?.FullName == "CombatExtended.Lasers.LaserBeamCE";
         }
 
         private static void AddDirectDamage(DamageProfile profile, string label, float damage, DamageDef damageDef, ProjectilePropertiesCE projectilePropsCE, int count)
@@ -572,7 +590,8 @@ namespace CEHitChanceCalculator
                 ArmorEventMultiplier = armorEventMultiplier,
                 ArmorKind = kind,
                 ArmorPenetrationSharp = armorKind.HasValue ? Mathf.Max(0f, armorPenetrationSharp) : projectilePropsCE?.armorPenetrationSharp ?? defaultPen,
-                ArmorPenetrationBlunt = armorKind.HasValue ? Mathf.Max(0f, armorPenetrationBlunt) : DefaultSecondaryPenetration(kind, projectilePropsCE, defaultPen)
+                ArmorPenetrationBlunt = armorKind.HasValue ? Mathf.Max(0f, armorPenetrationBlunt) : DefaultSecondaryPenetration(kind, projectilePropsCE, defaultPen),
+                UsesAmbientArmorFormula = IsAmbientDamage(damageDef)
             };
         }
 
@@ -628,6 +647,25 @@ namespace CEHitChanceCalculator
                 return ArmorDamageKind.Electric;
             }
             return ArmorDamageKind.None;
+        }
+
+        private static bool IsAmbientDamage(DamageDef damageDef)
+        {
+            if (damageDef == null)
+            {
+                return false;
+            }
+            if (damageDef.GetModExtension<DamageDefExtensionCE>()?.isAmbientDamage ?? false)
+            {
+                return true;
+            }
+
+            // CE 把火焰类伤害作为环境热伤处理；这里保留 defName fallback，避免 XML 继承/补丁顺序差异导致漏读扩展。
+            return damageDef.defName == "Flame"
+                || damageDef.defName == "Burn"
+                || damageDef.defName == "PrometheumFlame"
+                || damageDef.defName == "Flame_Secondary"
+                || damageDef.defName == "Flame_Secondary_Incendiary";
         }
 
         private static void AddReason(ref string reasons, bool condition, string label)
@@ -770,7 +808,9 @@ namespace CEHitChanceCalculator
             input.ReloadSpeed = Mathf.Max(0.001f, shooter.GetStatValue(CE_StatDefOf.ReloadSpeed));
             input.NightVisionEfficiency = Mathf.Clamp01(shooter.GetStatValue(CE_StatDefOf.NightVisionEfficiency));
             input.ShooterThingId = shooter.thingIDNumber;
-            input.ShotHeightCells = new CollisionVertical(shooter).shotHeight;
+            CollisionVertical vertical = new CollisionVertical(shooter);
+            input.ShotHeightCells = vertical.shotHeight;
+            input.ShooterMaxHeightCells = Mathf.Max(input.ShotHeightCells, vertical.Max);
             if (swayFactor.HasValue)
             {
                 input.SwayDegrees = HitChanceCalculator.CalculateSwayAmplitude(input.ShootingAccuracy, swayFactor.Value);
@@ -828,12 +868,14 @@ namespace CEHitChanceCalculator
             Pawn operatorPawn = CE_Utility.TryGetTurretOperator(turret);
             if (operatorPawn != null)
             {
-                input.ShootingAccuracy = Mathf.Min(operatorPawn.GetStatValue(StatDefOf.ShootingAccuracyPawn), 4.5f);
-                input.AimingAccuracy = Mathf.Min(operatorPawn.GetStatValue(CE_StatDefOf.AimingAccuracy), 1.5f);
-                input.ReloadSpeed = Mathf.Max(0.001f, operatorPawn.GetStatValue(CE_StatDefOf.ReloadSpeed));
-                input.NightVisionEfficiency = Mathf.Clamp01(operatorPawn.GetStatValue(CE_StatDefOf.NightVisionEfficiency));
-                input.ShooterThingId = operatorPawn.thingIDNumber;
+                // 有人炮塔的“射手”就是操作员。这里复用 pawn 路径，避免和直接选中操作员载入时出现
+                // 瞄准耗时、枪口高度、摆动重算等输入不一致。
+                if (!TryApplyShooter(operatorPawn, input, swayFactor, out message))
+                {
+                    return false;
+                }
                 message = "CEHCC_LoadShooterTurretMannedSuccess".Translate(turret.LabelCap, operatorPawn.LabelCap);
+                return true;
             }
             else
             {
@@ -848,7 +890,9 @@ namespace CEHitChanceCalculator
             }
 
             input.AimingDelayFactor = 1f;
-            input.ShotHeightCells = new CollisionVertical(turret).shotHeight;
+            CollisionVertical vertical = new CollisionVertical(turret);
+            input.ShotHeightCells = vertical.shotHeight;
+            input.ShooterMaxHeightCells = Mathf.Max(input.ShotHeightCells, vertical.Max);
             if (swayFactor.HasValue)
             {
                 input.SwayDegrees = HitChanceCalculator.CalculateSwayAmplitude(input.ShootingAccuracy, swayFactor.Value);

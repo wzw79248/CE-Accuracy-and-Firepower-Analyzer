@@ -70,7 +70,7 @@ namespace CEHitChanceCalculator
         private static string sessionLoadedProjectileWarning;
         private static DamageProfile sessionLoadedDamageProfile = DamageProfile.Empty;
         private static ComparisonSnapshot sessionComparisonSnapshot;
-        private static BallisticDisplayMode sessionBallisticDisplayMode = BallisticDisplayMode.ImpactHeatmap;
+        private static BallisticDisplayMode sessionBallisticDisplayMode = BallisticDisplayMode.SingleBurst;
         private static int sessionBallisticSampleIndex;
 
         private readonly HitChanceInputs input;
@@ -80,6 +80,7 @@ namespace CEHitChanceCalculator
         private string maxRangeBuffer;
         private string speedBuffer;
         private string shotHeightBuffer;
+        private string shooterMaxHeightBuffer;
         private string gravityFactorBuffer;
         private string targetHeightBuffer;
         private string targetWidthBuffer;
@@ -122,7 +123,7 @@ namespace CEHitChanceCalculator
         private string cachedSideBallisticTextureKey;
         private string cachedSignature;
         private bool forceRecalculate = true;
-        private BallisticDisplayMode ballisticDisplayMode = BallisticDisplayMode.ImpactHeatmap;
+        private BallisticDisplayMode ballisticDisplayMode = BallisticDisplayMode.SingleBurst;
         private int ballisticSampleIndex;
         private ThingWithComps loadedWeapon;
         private CEAmmoChoice loadedAmmoChoice;
@@ -140,8 +141,14 @@ namespace CEHitChanceCalculator
         private ComparisonSnapshot comparisonSnapshot;
         private List<CEBurstModeChoice> burstModes = new List<CEBurstModeChoice>();
         private int burstModeIndex = -1;
+        private bool minimized;
+        private Vector2 expandedWindowSize;
+        private static readonly Texture2D MinimizeIcon = TexButton.Minus;
+        private static readonly Texture2D RestoreIcon = TexButton.Plus;
 
         private const float CurrentLoadoutHeight = 72f;
+        private const float MinimizedWindowWidth = 560f;
+        private const float MinimizedWindowHeight = 72f;
 
         public override Vector2 InitialSize => new Vector2(1180f, 720f);
 
@@ -152,12 +159,17 @@ namespace CEHitChanceCalculator
             forcePause = false;
             absorbInputAroundWindow = false;
             closeOnClickedOutside = true;
+            draggable = true;
             doCloseX = true;
             InitBuffers();
-            if (CEHitChanceCalculatorMod.Settings?.PendingDefaultRestore == true)
+            bool pendingDefaultRestore = CEHitChanceCalculatorMod.Settings?.PendingDefaultRestore == true;
+            if (pendingDefaultRestore || ShouldLoadDefaultAssaultRifleOnOpen())
             {
                 RestoreDefaults();
-                CEHitChanceCalculatorMod.Settings.ConsumePendingDefaultRestore();
+                if (pendingDefaultRestore)
+                {
+                    CEHitChanceCalculatorMod.Settings.ConsumePendingDefaultRestore();
+                }
             }
         }
 
@@ -170,15 +182,11 @@ namespace CEHitChanceCalculator
 
         public override void DoWindowContents(Rect inRect)
         {
-            Text.Font = GameFont.Medium;
-            Widgets.Label(new Rect(inRect.x, inRect.y, inRect.width, 34f), "CEHCC_WindowTitle".Translate());
-            Text.Font = GameFont.Small;
-            Rect glossaryButton = new Rect(inRect.xMax - 96f, inRect.y + 2f, 90f, 28f);
-            if (Widgets.ButtonText(glossaryButton, "CEHCC_GlossaryTitle".Translate()))
+            DrawTitleBar(inRect);
+            if (minimized)
             {
-                Find.WindowStack.Add(new Dialog_CEHitChanceGlossary());
+                return;
             }
-            TooltipHandler.TipRegion(glossaryButton, "CEHCC_GlossaryTooltip".Translate());
 
             float buttonsHeight = HeaderButtonsHeight(inRect.width);
             Rect topButtons = new Rect(inRect.x, inRect.y + 38f, inRect.width, buttonsHeight);
@@ -207,19 +215,19 @@ namespace CEHitChanceCalculator
             Rect coreRect = new Rect(0f, outputY, outputViewRect.width, CoreSummaryHeight(result));
             DrawCoreSummary(coreRect, result);
             outputY = coreRect.yMax + 8f;
+            DrawAnalysisPanel(ref outputY, outputViewRect.width, result);
             Rect firstHitRect = new Rect(0f, outputY, outputViewRect.width, FirstHitAnalysisHeight(result));
             DrawFirstHitAnalysis(firstHitRect, result);
             outputY = firstHitRect.yMax + 8f;
             Rect armorRect = new Rect(0f, outputY, outputViewRect.width, ArmorResultsHeight(outputViewRect.width));
             DrawArmorResults(armorRect);
             outputY = armorRect.yMax + 8f;
-            Rect dpsRect = new Rect(0f, outputY, outputViewRect.width, DpsHeight(outputViewRect.width));
+            Rect dpsRect = new Rect(0f, outputY, outputViewRect.width, DpsHeight(outputViewRect.width, result));
             DrawDpsResults(dpsRect, result);
             outputY = dpsRect.yMax + 8f;
             Rect technicalRect = new Rect(0f, outputY, outputViewRect.width, TechnicalDetailsHeight(result));
             DrawTechnicalDetails(technicalRect, result);
             outputY = technicalRect.yMax + 8f;
-            DrawAnalysisPanel(ref outputY, outputViewRect.width, result);
             Widgets.EndScrollView();
 
             Rect outRect = new Rect(outputOutRect.xMax + gap, bodyRect.y, rightWidth, bodyRect.height);
@@ -227,11 +235,22 @@ namespace CEHitChanceCalculator
             Widgets.BeginScrollView(outRect, ref scrollPosition, viewRect);
 
             float y = 0f;
+            DrawAnalysisMode(ref y, viewRect.width);
+            if (input.AnalysisMode == HitChanceAnalysisMode.Timeline)
+            {
+                DrawTimelineWindowMode(ref y, viewRect.width);
+            }
+            if (input.AnalysisMode == HitChanceAnalysisMode.DistanceCurve || input.AnalysisMode == HitChanceAnalysisMode.BallisticDistribution)
+            {
+                DrawInt(ref y, viewRect.width, "CEHCC_AnalysisSamples".Translate(), ref input.AnalysisSamples, ref analysisSamplesBuffer, 100, 50000);
+            }
+
             DrawSection(ref y, viewRect.width, "CEHCC_SectionShot".Translate());
             DrawFloat(ref y, viewRect.width, "CEHCC_DistanceCells".Translate(), ref input.DistanceCells, ref distanceBuffer, 0.1f, 300f);
             DrawFloat(ref y, viewRect.width, "CEHCC_MaxRangeCells".Translate(), ref input.MaxRangeCells, ref maxRangeBuffer, 1f, 500f);
             DrawFloat(ref y, viewRect.width, "CEHCC_ProjectileSpeed".Translate(), ref input.ShotSpeedCellsPerSecond, ref speedBuffer, 1f, 1000f);
             DrawFloat(ref y, viewRect.width, "CEHCC_ShotHeight".Translate(), ref input.ShotHeightCells, ref shotHeightBuffer, 0f, 5f);
+            DrawFloat(ref y, viewRect.width, "CEHCC_ShooterMaxHeight".Translate(), ref input.ShooterMaxHeightCells, ref shooterMaxHeightBuffer, 0f, 5f);
             DrawFloat(ref y, viewRect.width, "CEHCC_GravityFactor".Translate(), ref input.GravityFactor, ref gravityFactorBuffer, 0f, 10f);
 
             DrawSection(ref y, viewRect.width, "CEHCC_SectionWeaponShooter".Translate());
@@ -266,17 +285,6 @@ namespace CEHitChanceCalculator
             DrawInt(ref y, viewRect.width, "CEHCC_MonteCarloSamples".Translate(), ref input.Samples, ref samplesBuffer, 100, 200000);
             DrawInt(ref y, viewRect.width, "CEHCC_RandomSeed".Translate(), ref input.Seed, ref seedBuffer, 0, int.MaxValue);
 
-            DrawSection(ref y, viewRect.width, "CEHCC_SectionAnalysis".Translate());
-            DrawAnalysisMode(ref y, viewRect.width);
-            if (input.AnalysisMode == HitChanceAnalysisMode.Timeline)
-            {
-                DrawTimelineWindowMode(ref y, viewRect.width);
-            }
-            if (input.AnalysisMode == HitChanceAnalysisMode.DistanceCurve || input.AnalysisMode == HitChanceAnalysisMode.BallisticDistribution)
-            {
-                DrawInt(ref y, viewRect.width, "CEHCC_AnalysisSamples".Translate(), ref input.AnalysisSamples, ref analysisSamplesBuffer, 100, 50000);
-            }
-
             if (showAdvanced)
             {
                 DrawSection(ref y, viewRect.width, "CEHCC_SectionAdvanced".Translate());
@@ -296,12 +304,83 @@ namespace CEHitChanceCalculator
                 DrawCheckbox(ref y, viewRect.width, "CEHCC_ShooterSuppressed".Translate(), ref input.ShooterSuppressed);
                 DrawCheckbox(ref y, viewRect.width, "CEHCC_BlindFiring".Translate(), ref input.BlindFiring);
                 DrawCheckbox(ref y, viewRect.width, "CEHCC_FasterRepeatShots".Translate(), ref input.FasterRepeatShots);
+                DrawCheckbox(ref y, viewRect.width, "CEHCC_InstantProjectile".Translate(), ref input.InstantProjectile);
+                DrawCheckbox(ref y, viewRect.width, "CEHCC_InstantIgnoresMechanicalSpread".Translate(), ref input.InstantProjectileIgnoresMechanicalSpread);
                 DrawFloat(ref y, viewRect.width, "CEHCC_CircularMissRadius".Translate(), ref input.CircularMissRadiusCells, ref circularBuffer, 0f, 100f);
                 DrawFloat(ref y, viewRect.width, "CEHCC_IndirectFireShift".Translate(), ref input.IndirectFireShiftCells, ref indirectBuffer, 0f, 100f);
             }
 
             MarkDirtyIfInputsChanged();
             Widgets.EndScrollView();
+        }
+
+        private void DrawTitleBar(Rect inRect)
+        {
+            const float iconSize = 28f;
+            const float iconGap = 6f;
+            Rect glossaryButton = new Rect(inRect.xMax - iconSize, inRect.y + 2f, iconSize, iconSize);
+            Rect toolsButton = new Rect(glossaryButton.x - iconGap - iconSize, glossaryButton.y, iconSize, iconSize);
+            Rect minifyButton = new Rect(toolsButton.x - iconGap - iconSize, glossaryButton.y, iconSize, iconSize);
+
+            Text.Font = GameFont.Medium;
+            Widgets.Label(new Rect(inRect.x, inRect.y, Mathf.Max(0f, minifyButton.x - inRect.x - 6f), 34f), "CEHCC_WindowTitle".Translate());
+            Text.Font = GameFont.Small;
+
+            if (DrawTitleIconButton(minifyButton, minimized ? RestoreIcon : MinimizeIcon, minimized ? "CEHCC_RestoreWindow".Translate() : "CEHCC_MinimizeWindow".Translate()))
+            {
+                SetMinimized(!minimized);
+            }
+            if (DrawTitleIconButton(toolsButton, TexButton.OpenInspectSettings, "CEHCC_Tools".Translate()))
+            {
+                OpenToolsWindow();
+            }
+            if (DrawTitleIconButton(glossaryButton, TexButton.Info, "CEHCC_GlossaryTooltip".Translate()))
+            {
+                Find.WindowStack.Add(new Dialog_CEHitChanceGlossary());
+            }
+        }
+
+        private static bool DrawTitleIconButton(Rect rect, Texture2D icon, TaggedString tooltip)
+        {
+            bool clicked = Widgets.ButtonImage(rect, icon);
+            TooltipHandler.TipRegion(rect, tooltip);
+            return clicked;
+        }
+
+        private void SetMinimized(bool value)
+        {
+            if (minimized == value)
+            {
+                return;
+            }
+
+            minimized = value;
+            if (minimized)
+            {
+                expandedWindowSize = new Vector2(windowRect.width, windowRect.height);
+                windowRect.width = Mathf.Min(windowRect.width, MinimizedWindowWidth);
+                windowRect.height = MinimizedWindowHeight;
+                closeOnClickedOutside = false;
+                preventCameraMotion = false;
+                GUI.FocusControl(null);
+                GUIUtility.keyboardControl = 0;
+            }
+            else
+            {
+                windowRect.width = Mathf.Max(expandedWindowSize.x, MinimizedWindowWidth);
+                windowRect.height = Mathf.Max(expandedWindowSize.y, InitialSize.y);
+                closeOnClickedOutside = true;
+                preventCameraMotion = true;
+            }
+
+            ClampWindowToScreen();
+            Widgets.mouseOverScrollViewStack.Clear();
+        }
+
+        private void ClampWindowToScreen()
+        {
+            windowRect.x = Mathf.Clamp(windowRect.x, 0f, Mathf.Max(0f, UI.screenWidth - windowRect.width));
+            windowRect.y = Mathf.Clamp(windowRect.y, 0f, Mathf.Max(0f, UI.screenHeight - windowRect.height));
         }
 
         private List<HeaderButton> HeaderButtons()
@@ -381,6 +460,11 @@ namespace CEHitChanceCalculator
                     }
                 }
             }
+        }
+
+        private void OpenToolsWindow()
+        {
+            Find.WindowStack.Add(new Dialog_CEHitChanceTools());
         }
 
         private void OpenObstacleEditor()
@@ -611,9 +695,16 @@ namespace CEHitChanceCalculator
 
             Widgets.Label(new Rect(x, y, rect.width - 24f, line), "CEHCC_TechnicalDetailsTitle".Translate());
             y += line;
-            Widgets.Label(new Rect(x, y, rect.width - 24f, line), "CEHCC_ResultRealFireInputs".Translate(result.EffectiveSwayDegrees.ToString("0.###"), result.BurstShotIntervalTicks, result.GravityPerWidth.ToString("0.###")));
+            Widgets.Label(new Rect(x, y, rect.width - 24f, line), "CEHCC_ResultRealFireInputs".Translate(result.EffectiveSwayDegrees.ToString("0.###"), result.EffectiveSpreadDegrees.ToString("0.###"), result.BurstShotIntervalTicks, result.GravityPerWidth.ToString("0.###")));
             y += line;
+            if (result.InstantProjectile)
+            {
+                Widgets.Label(new Rect(x, y, rect.width - 24f, line), (result.InstantProjectileIgnoresMechanicalSpread ? "CEHCC_ResultInstantProjectileNoSpread" : "CEHCC_ResultInstantProjectile").Translate());
+                y += line;
+            }
             Widgets.Label(new Rect(x, y, rect.width - 24f, line), "CEHCC_ResultRangeVertical".Translate(result.RangeVerticalErrorCells.ToString("0.####"), (result.RangeVerticalErrorCells * HitChanceCalculator.MetersPerCellHeight).ToString("0.###")));
+            y += line;
+            Widgets.Label(new Rect(x, y, rect.width - 24f, line), "CEHCC_ResultTargetCoverAdjustment".Translate(result.TargetCoverHeightCells.ToString("0.###"), result.AdjustedShotHeightCells.ToString("0.###")));
             y += line;
             if (result.MonteCarloPerShot != null && result.MonteCarloPerShot.Length > 1)
             {
@@ -679,7 +770,12 @@ namespace CEHitChanceCalculator
                 Widgets.Label(new Rect(x, y, width, line), "CEHCC_DpsFasterRepeatShots".Translate((dps.RepeatWarmupReduction * 100f).ToString("0.#")));
                 y += line;
             }
-            DrawWrappedLabel(ref y, x, width, "CEHCC_DpsDirectDamage".Translate(damageProfile.DirectLabel, damageProfile.DirectDamagePerShot.ToString("0.##"), dps.DirectArmoredDamagePerShot.ToString("0.##")));
+            DrawWrappedLabel(ref y, x, width, "CEHCC_DpsDirectDamage".Translate(damageProfile.DirectLabel, dps.DirectEffectiveDamagePerShot.ToString("0.##"), dps.DirectArmoredDamagePerShot.ToString("0.##")));
+            if (dps.HasLaserDamageFalloff)
+            {
+                Widgets.Label(new Rect(x, y, width, line), "CEHCC_DpsLaserFalloff".Translate(Percent(dps.LaserDamageFalloffMultiplier)));
+                y += line;
+            }
             Widgets.Label(new Rect(x, y, width, line), "CEHCC_DpsDirectDpsStats".Translate(dps.TotalExpectedDpsMagazine.ToString("0.##"), dps.TotalExpectedDps60s.ToString("0.##"), dps.TotalExpectedDps.ToString("0.##")));
             y += line;
             Widgets.Label(new Rect(x, y, width, line), "CEHCC_DpsMagazineStats".Translate(dps.TotalExpectedDamagePerMagazine.ToString("0.##"), dps.MagazineFireSeconds.ToString("0.##"), dps.TotalExpectedDamagePerBurst.ToString("0.##")));
@@ -814,10 +910,10 @@ namespace CEHitChanceCalculator
 
         private float TechnicalDetailsHeight(HitChanceResult result)
         {
-            return 16f + (comparisonSnapshot == null ? 5f : 6f) * 24f;
+            return 16f + (comparisonSnapshot == null ? 6f : 7f) * 24f;
         }
 
-        private float DpsHeight(float width)
+        private float DpsHeight(float width, HitChanceResult result)
         {
             float innerWidth = width - 24f;
             DamageProfile damageProfile = loadedDamageProfile ?? DamageProfile.Empty;
@@ -827,8 +923,13 @@ namespace CEHitChanceCalculator
                 return height + 24f;
             }
 
-            height += WrappedLabelHeight("CEHCC_DpsDirectDamage".Translate(damageProfile.DirectLabel, damageProfile.DirectDamagePerShot.ToString("0.##"), "999.99"), innerWidth);
+            DpsResult dps = DpsCalculator.Calculate(damageProfile, input, result);
+            height += WrappedLabelHeight("CEHCC_DpsDirectDamage".Translate(damageProfile.DirectLabel, dps.DirectEffectiveDamagePerShot.ToString("0.##"), "999.99"), innerWidth);
             height += 144f;
+            if (dps.HasLaserDamageFalloff)
+            {
+                height += 24f;
+            }
             if (input.FasterRepeatShots)
             {
                 height += 24f;
@@ -894,7 +995,7 @@ namespace CEHitChanceCalculator
 
         private float GetOutputViewHeight(HitChanceResult result, float width)
         {
-            float height = CurrentLoadoutHeight + 8f + CoreSummaryHeight(result) + 8f + FirstHitAnalysisHeight(result) + 8f + ArmorResultsHeight(width) + 8f + DpsHeight(width) + 8f + TechnicalDetailsHeight(result) + 8f;
+            float height = CurrentLoadoutHeight + 8f + CoreSummaryHeight(result) + 8f + FirstHitAnalysisHeight(result) + 8f + ArmorResultsHeight(width) + 8f + DpsHeight(width, result) + 8f + TechnicalDetailsHeight(result) + 8f;
             if (input.AnalysisMode != HitChanceAnalysisMode.None)
             {
                 height += CalculateAnalysisHeight() + 8f;
@@ -907,19 +1008,20 @@ namespace CEHitChanceCalculator
             const float headerAndPadding = 36f;
             const float rowHeight = 30f;
             float weaponRows = 9f + (loadedWeaponHasAttachments ? 1f : 0f) + (loadedWeaponHasQuality ? 1f : 0f) + (loadedWeaponHasBipod ? 1f : 0f);
-            float baseRows = 5f + weaponRows + 7f;
-            const float baseSections = 4f;
-            const float advancedRows = 18f;
-            const float advancedSections = 1f;
-            float height = headerAndPadding + baseRows * rowHeight + baseSections * 36f;
+            float analysisRows = 1f;
             if (input.AnalysisMode == HitChanceAnalysisMode.Timeline)
             {
-                height += rowHeight;
+                analysisRows += 1f;
             }
             if (input.AnalysisMode == HitChanceAnalysisMode.DistanceCurve || input.AnalysisMode == HitChanceAnalysisMode.BallisticDistribution)
             {
-                height += rowHeight;
+                analysisRows += 1f;
             }
+            float baseRows = analysisRows + 6f + weaponRows + 7f;
+            const float baseSections = 3f;
+            const float advancedRows = 18f;
+            const float advancedSections = 1f;
+            float height = headerAndPadding + baseRows * rowHeight + baseSections * 36f;
             if (includeAnalysisPanel)
             {
                 height += CalculateAnalysisHeight();
@@ -962,7 +1064,7 @@ namespace CEHitChanceCalculator
             Widgets.Label(new Rect(row.x, row.y, width * 0.58f, row.height), "CEHCC_AnalysisMode".Translate());
             if (Widgets.ButtonText(new Rect(width * 0.6f, row.y, width * 0.28f, row.height), AnalysisModeLabel(input.AnalysisMode)))
             {
-                input.AnalysisMode = NextAnalysisMode(input.AnalysisMode);
+                OpenAnalysisModeMenu();
             }
             y += 30f;
         }
@@ -978,11 +1080,16 @@ namespace CEHitChanceCalculator
             if (input.AnalysisMode == HitChanceAnalysisMode.DistanceCurve)
             {
                 HitChanceAnalysisPoint[] points = cachedDistanceCurve ?? new HitChanceAnalysisPoint[0];
-                DrawAnalysisHeader(ref y, width, "CEHCC_AnalysisDistanceTitle".Translate(HitChanceCalculator.CalculateAnalysisSamples(input).ToString()));
+                Rect panel = DrawAnalysisBox(ref y, width, Mathf.Max(1, points.Length));
+                float innerY = panel.y + 8f;
+                float innerX = panel.x + 12f;
+                float innerWidth = panel.width - 24f;
+                DrawAnalysisHeader(ref innerY, innerX, innerWidth, "CEHCC_AnalysisDistanceTitle".Translate(HitChanceCalculator.CalculateAnalysisSamples(input).ToString()));
                 for (int i = 0; i < points.Length; i++)
                 {
-                    DrawBarRow(ref y, width, points[i].Label, points[i].Single, points[i].BurstAny, true);
+                    DrawBarRow(ref innerY, innerX, innerWidth, points[i].Label, points[i].Single, points[i].BurstAny, true);
                 }
+                y = panel.yMax + 8f;
                 return;
             }
 
@@ -1000,36 +1107,66 @@ namespace CEHitChanceCalculator
 
             if (result.MonteCarloPerShot == null || result.MonteCarloPerShot.Length <= 1)
             {
-                DrawAnalysisHeader(ref y, width, "CEHCC_AnalysisBurstSingleShot".Translate());
+                Rect panel = DrawAnalysisBox(ref y, width, 0);
+                float innerY = panel.y + 8f;
+                DrawAnalysisHeader(ref innerY, panel.x + 12f, panel.width - 24f, "CEHCC_AnalysisBurstSingleShot".Translate());
+                y = panel.yMax + 8f;
                 return;
             }
 
-            DrawAnalysisHeader(ref y, width, "CEHCC_AnalysisBurstTitle".Translate());
+            Rect burstPanel = DrawAnalysisBox(ref y, width, result.MonteCarloPerShot.Length);
+            float burstY = burstPanel.y + 8f;
+            float burstX = burstPanel.x + 12f;
+            float burstWidth = burstPanel.width - 24f;
+            DrawAnalysisHeader(ref burstY, burstX, burstWidth, "CEHCC_AnalysisBurstTitle".Translate());
             for (int i = 0; i < result.MonteCarloPerShot.Length; i++)
             {
-                DrawBarRow(ref y, width, "#" + (i + 1), result.MonteCarloPerShot[i], result.MonteCarloBurstAny, false);
+                DrawBarRow(ref burstY, burstX, burstWidth, "#" + (i + 1), result.MonteCarloPerShot[i], result.MonteCarloBurstAny, false);
             }
+            y = burstPanel.yMax + 8f;
+        }
+
+        private static Rect DrawAnalysisBox(ref float y, float width, int rowCount)
+        {
+            Rect panel = new Rect(0f, y, width, BoxedAnalysisHeight(rowCount));
+            Widgets.DrawMenuSection(panel);
+            return panel;
+        }
+
+        private static float BoxedAnalysisHeight(int rowCount)
+        {
+            return 16f + 26f + Mathf.Max(0, rowCount) * 26f;
         }
 
         private static void DrawAnalysisHeader(ref float y, float width, string label)
         {
-            Widgets.Label(new Rect(0f, y, width, 24f), label);
+            DrawAnalysisHeader(ref y, 0f, width, label);
+        }
+
+        private static void DrawAnalysisHeader(ref float y, float x, float width, string label)
+        {
+            Widgets.Label(new Rect(x, y, width, 24f), label);
             y += 26f;
         }
 
         private static void DrawBarRow(ref float y, float width, string label, float primary, float secondary, bool showSecondary)
         {
-            Rect row = new Rect(0f, y, width, 24f);
+            DrawBarRow(ref y, 0f, width, label, primary, secondary, showSecondary);
+        }
+
+        private static void DrawBarRow(ref float y, float x, float width, string label, float primary, float secondary, bool showSecondary)
+        {
+            Rect row = new Rect(x, y, width, 24f);
             Widgets.Label(new Rect(row.x, row.y, 72f, row.height), label);
 
             float barX = 78f;
             float barWidth = Mathf.Max(80f, width * 0.42f);
-            DrawPercentBar(new Rect(barX, row.y + 4f, barWidth, 14f), primary, new Color(0.48f, 0.63f, 0.78f));
+            DrawPercentBar(new Rect(row.x + barX, row.y + 4f, barWidth, 14f), primary, new Color(0.48f, 0.63f, 0.78f));
 
             string text = showSecondary
                 ? "CEHCC_AnalysisDistanceRow".Translate(Percent(primary), Percent(secondary))
                 : "CEHCC_AnalysisBurstRow".Translate(Percent(primary));
-            Widgets.Label(new Rect(barX + barWidth + 12f, row.y, width - barX - barWidth - 12f, row.height), text);
+            Widgets.Label(new Rect(row.x + barX + barWidth + 12f, row.y, width - barX - barWidth - 12f, row.height), text);
             y += 26f;
         }
 
@@ -1195,7 +1332,7 @@ namespace CEHitChanceCalculator
 
             float minY = distribution.VerticalMinCells;
             float maxY = Mathf.Max(minY + 0.1f, distribution.VerticalMaxCells);
-            float gravity = HitChanceCalculator.CalculateGravityPerWidth(input.GravityFactor);
+            float gravity = HitChanceCalculator.CalculateEffectiveGravityPerWidth(input);
             float speed = Mathf.Max(1f, input.ShotSpeedCellsPerSecond);
             float distance = Mathf.Max(0.1f, distribution.DistanceCells);
             DrawSidePlotGrid(plot, distance, minY, maxY);
@@ -2155,26 +2292,19 @@ namespace CEHitChanceCalculator
 
         private float CalculateAnalysisHeight()
         {
-            float height = 30f;
             if (input.AnalysisMode == HitChanceAnalysisMode.DistanceCurve)
             {
-                height += 30f;
-                int pointCount = 0;
-                float[] candidates = { 10f, 20f, 30f, 40f, 50f };
-                for (int i = 0; i < candidates.Length; i++)
-                {
-                    if (candidates[i] <= input.MaxRangeCells)
-                    {
-                        pointCount++;
-                    }
-                }
-                height += 32f + Mathf.Max(1, pointCount) * 26f;
+                int rowCount = cachedDistanceCurve != null ? cachedDistanceCurve.Length : 1;
+                return 4f + BoxedAnalysisHeight(Mathf.Max(1, rowCount)) + 8f;
             }
-            else if (input.AnalysisMode == HitChanceAnalysisMode.BurstPerShot)
+            if (input.AnalysisMode == HitChanceAnalysisMode.BurstPerShot)
             {
-                height += 32f + Mathf.Clamp(input.BurstShots, 1, 30) * 26f;
+                int rowCount = input.BurstShots <= 1 ? 0 : Mathf.Clamp(input.BurstShots, 1, 30);
+                return 4f + BoxedAnalysisHeight(rowCount) + 8f;
             }
-            else if (input.AnalysisMode == HitChanceAnalysisMode.Timeline)
+
+            float height = 30f;
+            if (input.AnalysisMode == HitChanceAnalysisMode.Timeline)
             {
                 FireTimeline timeline = input.Timeline60SecondMode
                     ? DpsCalculator.BuildFireTimeline(input, 60f)
@@ -2382,21 +2512,33 @@ namespace CEHitChanceCalculator
             }
         }
 
-        private static HitChanceAnalysisMode NextAnalysisMode(HitChanceAnalysisMode mode)
+        private void OpenAnalysisModeMenu()
         {
-            switch (mode)
+            HitChanceAnalysisMode[] modes =
             {
-                case HitChanceAnalysisMode.None:
-                    return HitChanceAnalysisMode.DistanceCurve;
-                case HitChanceAnalysisMode.DistanceCurve:
-                    return HitChanceAnalysisMode.BurstPerShot;
-                case HitChanceAnalysisMode.BurstPerShot:
-                    return HitChanceAnalysisMode.Timeline;
-                case HitChanceAnalysisMode.Timeline:
-                    return HitChanceAnalysisMode.BallisticDistribution;
-                default:
-                    return HitChanceAnalysisMode.None;
+                HitChanceAnalysisMode.None,
+                HitChanceAnalysisMode.DistanceCurve,
+                HitChanceAnalysisMode.BurstPerShot,
+                HitChanceAnalysisMode.Timeline,
+                HitChanceAnalysisMode.BallisticDistribution
+            };
+            var options = new List<FloatMenuOption>();
+            for (int i = 0; i < modes.Length; i++)
+            {
+                HitChanceAnalysisMode mode = modes[i];
+                options.Add(new FloatMenuOption(AnalysisModeLabel(mode), delegate
+                {
+                    if (input.AnalysisMode == mode)
+                    {
+                        return;
+                    }
+
+                    input.AnalysisMode = mode;
+                    forceRecalculate = true;
+                    StoreSessionState();
+                }));
             }
+            Find.WindowStack.Add(new FloatMenu(options));
         }
 
         private static string AnalysisModeLabel(HitChanceAnalysisMode mode)
@@ -2511,7 +2653,24 @@ namespace CEHitChanceCalculator
             }
             forceRecalculate = true;
             InitBuffers();
+            if (CEHitChanceCalculatorMod.Settings != null)
+            {
+                CEHitChanceCalculatorMod.Settings.DefaultLoadoutInputSignature = BuildInputSignature(input, false);
+            }
             StoreSessionState();
+        }
+
+        private bool ShouldLoadDefaultAssaultRifleOnOpen()
+        {
+            if (loadedWeapon != null)
+            {
+                return false;
+            }
+
+            string signature = BuildInputSignature(input, false);
+            string defaultLoadoutSignature = CEHitChanceCalculatorMod.Settings?.DefaultLoadoutInputSignature;
+            return IsPlainDefaultInput(input)
+                || (!string.IsNullOrEmpty(defaultLoadoutSignature) && defaultLoadoutSignature == signature);
         }
 
         private bool TryLoadDefaultAssaultRifle()
@@ -2556,6 +2715,7 @@ namespace CEHitChanceCalculator
             input.MaxRangeCells = 55f;
             input.ShotSpeedCellsPerSecond = 168f;
             input.ShotHeightCells = 0.85f;
+            input.ShooterMaxHeightCells = 1f;
             input.GravityFactor = 1f;
             input.SpreadDegrees = 0.07f;
             input.RecoilAmount = 1.50f;
@@ -3002,6 +3162,7 @@ namespace CEHitChanceCalculator
             maxRangeBuffer = input.MaxRangeCells.ToString("0.###");
             speedBuffer = input.ShotSpeedCellsPerSecond.ToString("0.###");
             shotHeightBuffer = input.ShotHeightCells.ToString("0.###");
+            shooterMaxHeightBuffer = input.ShooterMaxHeightCells.ToString("0.###");
             gravityFactorBuffer = input.GravityFactor.ToString("0.###");
             targetHeightBuffer = input.TargetHeightMeters.ToString("0.###");
             targetWidthBuffer = input.TargetWidthMeters.ToString("0.###");
@@ -3267,55 +3428,68 @@ namespace CEHitChanceCalculator
         {
             // 签名只收录会影响结果或图表的输入。新增字段时一定要同步加入这里，
             // 否则 UI 会继续显示旧缓存，表现为“改了数值但结果没变”。
-            return Join(
-                input.DistanceCells,
-                input.MaxRangeCells,
-                input.ShotSpeedCellsPerSecond,
-                input.ShotHeightCells,
-                input.GravityFactor,
-                input.TargetHeightMeters,
-                input.TargetWidthMeters,
-                input.TargetArmorSharp,
-                input.TargetArmorBlunt,
-                input.TargetArmorHeat,
-                input.TargetArmorElectric,
-                (int)input.TargetMode,
-                input.SwayDegrees,
-                input.SpreadDegrees,
-                input.RecoilAmount,
-                input.ShootingAccuracy,
-                input.AimingAccuracy,
-                input.SightsEfficiency,
-                input.AimingDelayFactor,
-                input.ReloadSpeed,
-                input.ReloadFactor,
-                input.NightVisionEfficiency,
-                (int)input.AimMode,
-                input.ShooterSuppressed ? 1 : 0,
-                input.Darkness,
-                input.WeatherError,
-                input.SmokeDensity,
-                input.TargetMoveSpeedCellsPerSecond,
-                input.TargetMoveDirectionDegrees,
-                input.BlindFiring ? 1 : 0,
-                input.CircularMissRadiusCells,
-                input.IndirectFireShiftCells,
-                input.BurstShots,
-                input.Rpm,
-                input.SustainedShotsPerSecond,
-                input.MagazineShots,
-                input.FireWarmupSeconds,
-                input.FireCooldownSeconds,
-                input.ReloadSeconds,
-                input.FasterRepeatShots ? 1 : 0,
-                input.Timeline60SecondMode ? 1 : 0,
-                input.ShooterThingId,
-                input.SwayStartTick,
-                input.Samples,
-                input.Seed,
-                (int)input.AnalysisMode,
-                input.AnalysisSamples,
-                HitChanceObstacleBridge.Version);
+            return BuildInputSignature(input, true);
+        }
+
+        private static bool IsPlainDefaultInput(HitChanceInputs value)
+        {
+            return BuildInputSignature(value, false) == BuildInputSignature(new HitChanceInputs(), false);
+        }
+
+        private static string BuildInputSignature(HitChanceInputs value, bool includeObstacleVersion)
+        {
+            string signature = Join(
+                value.DistanceCells,
+                value.MaxRangeCells,
+                value.ShotSpeedCellsPerSecond,
+                value.ShotHeightCells,
+                value.ShooterMaxHeightCells,
+                value.GravityFactor,
+                value.InstantProjectile ? 1 : 0,
+                value.InstantProjectileIgnoresMechanicalSpread ? 1 : 0,
+                value.TargetHeightMeters,
+                value.TargetWidthMeters,
+                value.TargetArmorSharp,
+                value.TargetArmorBlunt,
+                value.TargetArmorHeat,
+                value.TargetArmorElectric,
+                (int)value.TargetMode,
+                value.SwayDegrees,
+                value.SpreadDegrees,
+                value.RecoilAmount,
+                value.ShootingAccuracy,
+                value.AimingAccuracy,
+                value.SightsEfficiency,
+                value.AimingDelayFactor,
+                value.ReloadSpeed,
+                value.ReloadFactor,
+                value.NightVisionEfficiency,
+                (int)value.AimMode,
+                value.ShooterSuppressed ? 1 : 0,
+                value.Darkness,
+                value.WeatherError,
+                value.SmokeDensity,
+                value.TargetMoveSpeedCellsPerSecond,
+                value.TargetMoveDirectionDegrees,
+                value.BlindFiring ? 1 : 0,
+                value.CircularMissRadiusCells,
+                value.IndirectFireShiftCells,
+                value.BurstShots,
+                value.Rpm,
+                value.SustainedShotsPerSecond,
+                value.MagazineShots,
+                value.FireWarmupSeconds,
+                value.FireCooldownSeconds,
+                value.ReloadSeconds,
+                value.FasterRepeatShots ? 1 : 0,
+                value.Timeline60SecondMode ? 1 : 0,
+                value.ShooterThingId,
+                value.SwayStartTick,
+                value.Samples,
+                value.Seed,
+                (int)value.AnalysisMode,
+                value.AnalysisSamples);
+            return includeObstacleVersion ? Join(signature, HitChanceObstacleBridge.Version) : signature;
         }
 
         private static string Join(params object[] values)
@@ -3352,7 +3526,10 @@ namespace CEHitChanceCalculator
             target.MaxRangeCells = source.MaxRangeCells;
             target.ShotSpeedCellsPerSecond = source.ShotSpeedCellsPerSecond;
             target.ShotHeightCells = source.ShotHeightCells;
+            target.ShooterMaxHeightCells = source.ShooterMaxHeightCells;
             target.GravityFactor = source.GravityFactor;
+            target.InstantProjectile = source.InstantProjectile;
+            target.InstantProjectileIgnoresMechanicalSpread = source.InstantProjectileIgnoresMechanicalSpread;
             target.TargetHeightMeters = source.TargetHeightMeters;
             target.TargetWidthMeters = source.TargetWidthMeters;
             target.TargetArmorSharp = source.TargetArmorSharp;

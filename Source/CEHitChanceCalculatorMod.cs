@@ -39,16 +39,29 @@ namespace CEHitChanceCalculator
 
         public HitChanceInputs Inputs = new HitChanceInputs();
         public bool PendingDefaultRestore;
+        public bool ShowFireFieldGizmo = true;
+        public bool ShowTargetProfileGizmo;
+        public bool ShowAimDebugGizmo;
+        public bool ShowObstacleCollectorGizmo;
+        public string DefaultLoadoutInputSignature;
         private int defaultsVersion = CurrentDefaultsVersion;
 
         public override void ExposeData()
         {
             Scribe_Values.Look(ref defaultsVersion, "defaultsVersion", 0);
+            Scribe_Values.Look(ref ShowFireFieldGizmo, "showFireFieldGizmo", true);
+            Scribe_Values.Look(ref ShowTargetProfileGizmo, "showTargetProfileGizmo", false);
+            Scribe_Values.Look(ref ShowAimDebugGizmo, "showAimDebugGizmo", false);
+            Scribe_Values.Look(ref ShowObstacleCollectorGizmo, "showObstacleCollectorGizmo", false);
+            Scribe_Values.Look(ref DefaultLoadoutInputSignature, "defaultLoadoutInputSignature");
             Scribe_Values.Look(ref Inputs.DistanceCells, "distanceCells", 30f);
             Scribe_Values.Look(ref Inputs.MaxRangeCells, "maxRangeCells", 55f);
             Scribe_Values.Look(ref Inputs.ShotSpeedCellsPerSecond, "shotSpeedCellsPerSecond", 168f);
             Scribe_Values.Look(ref Inputs.ShotHeightCells, "shotHeightCells", 0.85f);
+            Scribe_Values.Look(ref Inputs.ShooterMaxHeightCells, "shooterMaxHeightCells", 1f);
             Scribe_Values.Look(ref Inputs.GravityFactor, "gravityFactor", 1f);
+            Scribe_Values.Look(ref Inputs.InstantProjectile, "instantProjectile", false);
+            Scribe_Values.Look(ref Inputs.InstantProjectileIgnoresMechanicalSpread, "instantProjectileIgnoresMechanicalSpread", false);
             Scribe_Values.Look(ref Inputs.TargetHeightMeters, "targetHeightMeters", 1.75f);
             Scribe_Values.Look(ref Inputs.TargetWidthMeters, "targetWidthMeters", 0.88f);
             Scribe_Values.Look(ref Inputs.TargetArmorSharp, "targetArmorSharp", 0f);
@@ -87,7 +100,7 @@ namespace CEHitChanceCalculator
             Scribe_Values.Look(ref Inputs.ReloadSeconds, "reloadSeconds", 4f);
             Scribe_Values.Look(ref Inputs.FasterRepeatShots, "fasterRepeatShots", false);
             Scribe_Values.Look(ref Inputs.Samples, "samples", 10000);
-            Scribe_Values.Look(ref Inputs.AnalysisMode, "analysisMode", HitChanceAnalysisMode.None);
+            Scribe_Values.Look(ref Inputs.AnalysisMode, "analysisMode", HitChanceAnalysisMode.BallisticDistribution);
             Scribe_Values.Look(ref Inputs.AnalysisSamples, "analysisSamples", 3000);
             Scribe_Values.Look(ref Inputs.Seed, "seed", 12345);
 

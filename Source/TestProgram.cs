@@ -27,13 +27,17 @@ namespace CEHitChanceCalculator.Tests
             CheckRpmChangesBurst();
             CheckAimModeSway();
             CheckTargetModeAimHeight();
+            CheckTargetCoverAdjustsAimHeights();
             CheckGravityFactorChangesBallistics();
+            CheckInstantProjectileUsesRayApproximation();
+            CheckInstantDamageFalloffIgnoresMechanicalSpread();
             CheckAxisDiagnostics();
             CheckShooterThingIdChangesSwayPhase();
             CheckRpmToWholeTicks();
             CheckLightingCurvePoints();
             CheckDistanceCurveUsesCappedSamples();
             CheckDpsUsesDirectHitChance();
+            CheckLaserDamageFalloffReducesDirectDamage();
             CheckArmorDamageFormula();
             CheckExplosiveArmorPenetrationRules();
             CheckAttachedExplosiveDamageCountsAsDirectArmorDamage();
@@ -64,6 +68,7 @@ namespace CEHitChanceCalculator.Tests
                 MaxRangeCells = 100f,
                 ShotSpeedCellsPerSecond = 80f,
                 ShotHeightCells = 0.85f,
+                ShooterMaxHeightCells = 1f,
                 TargetHeightMeters = 1.75f,
                 TargetWidthMeters = 0.88f,
                 SwayDegrees = 0.92f,
@@ -354,6 +359,51 @@ namespace CEHitChanceCalculator.Tests
             Mark(passed);
         }
 
+        private static void CheckTargetCoverAdjustsAimHeights()
+        {
+            HitChanceInputs input = BaselineNoDarkness();
+            input.ShotHeightCells = 0.45f;
+            input.ShooterMaxHeightCells = 1f;
+            input.TargetHeightMeters = 1.75f;
+            input.TargetMode = HitChanceTargetMode.Torso;
+            input.ShooterThingId = 123;
+
+            var obstacles = new LineOfFireObstacleContext
+            {
+                ShooterThingId = 999,
+                TargetDistanceCells = input.DistanceCells + 20f,
+                DistanceToleranceCells = 0.05f
+            };
+            obstacles.Obstacles.Add(new LineOfFireObstacle
+            {
+                DistanceCells = input.DistanceCells - 2f,
+                HalfDepthCells = 0.5f,
+                CenterOffsetCells = 0f,
+                HalfWidthCells = 0.5f,
+                MinHeightCells = 0f,
+                MaxHeightCells = 0.8f,
+                Label = "test cover"
+            });
+
+            HitChanceResult result = HitChanceCalculator.Calculate(input, obstacles);
+            HitChanceInputs shorterDistance = Clone(input);
+            shorterDistance.DistanceCells = 5f;
+            HitChanceResult shorterResult = HitChanceCalculator.Calculate(shorterDistance, obstacles);
+            bool passed = Near(result.TargetCoverHeightCells, 0.8f)
+                && Near(result.TargetAimHeightCells, 0.9f)
+                && Near(result.AdjustedShotHeightCells, 0.9f)
+                && Near(shorterResult.TargetCoverHeightCells, 0.8f)
+                && Near(shorterResult.TargetAimHeightCells, 0.9f)
+                && Near(shorterResult.AdjustedShotHeightCells, 0.9f);
+
+            Console.WriteLine("target cover is calculator data, not bound to source shooter or distance");
+            Console.WriteLine("  cover=" + result.TargetCoverHeightCells.ToString("0.###")
+                + " targetAim=" + result.TargetAimHeightCells.ToString("0.###")
+                + " shotHeight=" + result.AdjustedShotHeightCells.ToString("0.###")
+                + " shorterCover=" + shorterResult.TargetCoverHeightCells.ToString("0.###"));
+            Mark(passed);
+        }
+
         private static void CheckGravityFactorChangesBallistics()
         {
             HitChanceInputs normal = BaselineRangeSensitive();
@@ -372,6 +422,49 @@ namespace CEHitChanceCalculator.Tests
                 + " vertical=" + normalResult.RangeVerticalErrorCells.ToString("0.####")
                 + " highGravity=" + highGravityResult.GravityPerWidth.ToString("0.###")
                 + " vertical=" + highGravityResult.RangeVerticalErrorCells.ToString("0.####"));
+            Mark(passed);
+        }
+
+        private static void CheckInstantProjectileUsesRayApproximation()
+        {
+            HitChanceInputs input = BaselineRangeSensitive();
+            input.GravityFactor = 3f;
+            input.TargetMoveSpeedCellsPerSecond = 6f;
+            input.TargetMoveDirectionDegrees = 90f;
+            input.InstantProjectile = true;
+
+            HitChanceResult result = HitChanceCalculator.Calculate(input);
+            bool passed = Near(result.GravityPerWidth, 0f)
+                && Near(result.LeadErrorCells, 0f)
+                && result.InstantProjectile;
+
+            Console.WriteLine("instant projectile uses straight ray approximation");
+            Console.WriteLine("  gravity=" + result.GravityPerWidth.ToString("0.###")
+                + " lead=" + result.LeadErrorCells.ToString("0.###")
+                + " verticalErr=" + result.RangeVerticalErrorCells.ToString("0.####"));
+            Mark(passed);
+        }
+
+        private static void CheckInstantDamageFalloffIgnoresMechanicalSpread()
+        {
+            HitChanceInputs lowSpread = SpreadSensitiveBaseline();
+            lowSpread.InstantProjectile = true;
+            lowSpread.InstantProjectileIgnoresMechanicalSpread = true;
+            lowSpread.SpreadDegrees = 0.05f;
+
+            HitChanceInputs highSpread = Clone(lowSpread);
+            highSpread.SpreadDegrees = 5f;
+
+            HitChanceResult lowResult = HitChanceCalculator.Calculate(lowSpread);
+            HitChanceResult highResult = HitChanceCalculator.Calculate(highSpread);
+            bool passed = Near(lowResult.EffectiveSpreadDegrees, 0f)
+                && Near(highResult.EffectiveSpreadDegrees, 0f)
+                && Near(lowResult.MonteCarloSingle, highResult.MonteCarloSingle);
+
+            Console.WriteLine("instant damage falloff mode ignores mechanical spread as hit spread");
+            Console.WriteLine("  lowSpread=" + Percent(lowResult.MonteCarloSingle)
+                + " highSpread=" + Percent(highResult.MonteCarloSingle)
+                + " effectiveSpread=" + highResult.EffectiveSpreadDegrees.ToString("0.###"));
             Mark(passed);
         }
 
@@ -516,6 +609,49 @@ namespace CEHitChanceCalculator.Tests
                 + " nearMissDps=" + dps.NearMissDirectDps.ToString("0.###")
                 + " magDps=" + dps.DirectExpectedDpsMagazine.ToString("0.###")
                 + " dps60=" + dps.DirectExpectedDps60s.ToString("0.###"));
+            Mark(passed);
+        }
+
+        private static void CheckLaserDamageFalloffReducesDirectDamage()
+        {
+            HitChanceInputs input = BaselineNoDarkness();
+            input.DistanceCells = 40f;
+            input.SpreadDegrees = 1.2f;
+            input.SustainedShotsPerSecond = 1f;
+            input.MagazineShots = 0;
+            input.TargetArmorSharp = 0f;
+            input.TargetArmorBlunt = 0f;
+            var hitResult = HitChanceCalculator.Calculate(input);
+            var profile = new DamageProfile
+            {
+                DirectDamagePerShot = 100f,
+                DirectLabel = "laser"
+            };
+            profile.DirectLines.Add(new DamageLine
+            {
+                Label = "laser",
+                DamagePerShot = 100f,
+                ArmorKind = ArmorDamageKind.Sharp,
+                ArmorPenetrationSharp = 100f,
+                ArmorPenetrationBlunt = 10f,
+                UsesLaserDamageFalloff = true
+            });
+
+            DpsResult dps = DpsCalculator.Calculate(profile, input, hitResult);
+            ArmorDamageResult armor = DpsCalculator.CalculatePrimaryArmorResult(profile, input);
+            float expectedMultiplier = DpsCalculator.CalculateLaserDamageFalloffMultiplier(input.DistanceCells, input.SpreadDegrees);
+            bool passed = dps.HasLaserDamageFalloff
+                && expectedMultiplier < 1f
+                && Near(dps.LaserDamageFalloffMultiplier, expectedMultiplier)
+                && Near(dps.DirectEffectiveDamagePerShot, 100f * expectedMultiplier)
+                && Near(armor.PaperDamage, 100f * expectedMultiplier)
+                && armor.PostArmorDamage < 100f;
+
+            Console.WriteLine("laser damage falloff reduces direct and post-armor damage");
+            Console.WriteLine("  multiplier=" + Percent(dps.LaserDamageFalloffMultiplier)
+                + " effective=" + dps.DirectEffectiveDamagePerShot.ToString("0.###")
+                + " armorPaper=" + armor.PaperDamage.ToString("0.###")
+                + " postArmor=" + armor.PostArmorDamage.ToString("0.###"));
             Mark(passed);
         }
 
@@ -870,13 +1006,19 @@ namespace CEHitChanceCalculator.Tests
             float heatReduced = DpsCalculator.CalculatePostArmorDamage(20f, ArmorDamageKind.Heat, 0f, 0.5f, 0f, 0f, 0.25f, 0f);
             float electricBlocked = DpsCalculator.CalculatePostArmorDamage(20f, ArmorDamageKind.Electric, 0f, 0.5f, 0f, 0f, 0f, 1.0f);
             float zeroPenElectric = DpsCalculator.CalculatePostArmorDamage(20f, ArmorDamageKind.Electric, 0f, 0f, 0f, 0f, 0f, 1.0f);
+            float ambientBurnReduced = DpsCalculator.CalculatePostArmorDamage(20f, ArmorDamageKind.Heat, 0f, 0f, 0f, 0f, 0.25f, 0f, true);
+            float ambientElectricReduced = DpsCalculator.CalculatePostArmorDamage(20f, ArmorDamageKind.Electric, 0f, 0.5f, 0f, 0f, 0f, 1.0f, true);
             bool passed = Near(heatReduced, 10f)
                 && Near(electricBlocked, 0f)
-                && Near(zeroPenElectric, 20f);
+                && Near(zeroPenElectric, 20f)
+                && Near(ambientBurnReduced, 15f)
+                && Near(ambientElectricReduced, 10f);
 
             Console.WriteLine("  heatArmor0.25=" + heatReduced.ToString("0.###")
                 + " electricArmor1=" + electricBlocked.ToString("0.###")
-                + " zeroPenElectric=" + zeroPenElectric.ToString("0.###"));
+                + " zeroPenElectric=" + zeroPenElectric.ToString("0.###")
+                + " ambientBurn0.25=" + ambientBurnReduced.ToString("0.###")
+                + " ambientElectric1=" + ambientElectricReduced.ToString("0.###"));
             if (!passed)
             {
                 failures++;
@@ -897,7 +1039,10 @@ namespace CEHitChanceCalculator.Tests
                 MaxRangeCells = source.MaxRangeCells,
                 ShotSpeedCellsPerSecond = source.ShotSpeedCellsPerSecond,
                 ShotHeightCells = source.ShotHeightCells,
+                ShooterMaxHeightCells = source.ShooterMaxHeightCells,
                 GravityFactor = source.GravityFactor,
+                InstantProjectile = source.InstantProjectile,
+                InstantProjectileIgnoresMechanicalSpread = source.InstantProjectileIgnoresMechanicalSpread,
                 TargetHeightMeters = source.TargetHeightMeters,
                 TargetWidthMeters = source.TargetWidthMeters,
                 TargetArmorSharp = source.TargetArmorSharp,

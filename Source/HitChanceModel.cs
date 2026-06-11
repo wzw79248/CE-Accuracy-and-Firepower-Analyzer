@@ -40,7 +40,10 @@ namespace CEHitChanceCalculator
         public float MaxRangeCells = 55f;
         public float ShotSpeedCellsPerSecond = 168f;
         public float ShotHeightCells = 0.85f;
+        public float ShooterMaxHeightCells = 1f;
         public float GravityFactor = 1f;
+        public bool InstantProjectile = false;
+        public bool InstantProjectileIgnoresMechanicalSpread = false;
         public float TargetHeightMeters = 1.75f;
         public float TargetWidthMeters = 0.88f;
         public HitChanceTargetMode TargetMode = HitChanceTargetMode.Torso;
@@ -81,7 +84,7 @@ namespace CEHitChanceCalculator
         public int SwayStartTick = -1;
         public int Samples = 10000;
         public int Seed = 12345;
-        public HitChanceAnalysisMode AnalysisMode = HitChanceAnalysisMode.None;
+        public HitChanceAnalysisMode AnalysisMode = HitChanceAnalysisMode.BallisticDistribution;
         public int AnalysisSamples = 3000;
     }
 
@@ -104,6 +107,8 @@ namespace CEHitChanceCalculator
         public float TargetWidthCellsForCeMath;
         public float TargetHeightCells;
         public float TargetAimHeightCells;
+        public float TargetCoverHeightCells;
+        public float AdjustedShotHeightCells;
         public float ShotAngleRadians;
         public float VisibilityScalarCells;
         public float VisibilityErrorCells;
@@ -113,8 +118,11 @@ namespace CEHitChanceCalculator
         public float LightingRangeMultiplier;
         public float RangeVerticalErrorCells;
         public float EffectiveSwayDegrees;
+        public float EffectiveSpreadDegrees;
         public int BurstShotIntervalTicks;
         public float GravityPerWidth;
+        public bool InstantProjectile;
+        public bool InstantProjectileIgnoresMechanicalSpread;
         public HitChanceLimitAxis DominantAxis;
         public bool HorizontalSaturated;
         public bool VerticalSaturated;
@@ -168,8 +176,14 @@ namespace CEHitChanceCalculator
 
         public bool IsValid(float targetDistanceCells)
         {
-            return DistanceCells > 0.05f
+            return IsUsable()
                 && DistanceCells < targetDistanceCells - 0.05f
+                && targetDistanceCells > 0f;
+        }
+
+        public bool IsUsable()
+        {
+            return DistanceCells > 0.05f
                 && HalfWidthCells > 0f
                 && MaxHeightCells > MinHeightCells;
         }
@@ -193,17 +207,7 @@ namespace CEHitChanceCalculator
                 return false;
             }
 
-            if (ShooterThingId != 0 && input.ShooterThingId != 0 && ShooterThingId != input.ShooterThingId)
-            {
-                return false;
-            }
-
-            if (TargetDistanceCells > 0f && Mathf.Abs(TargetDistanceCells - input.DistanceCells) > Mathf.Max(0.05f, DistanceToleranceCells))
-            {
-                return false;
-            }
-
-            return ValidObstacleCount(input.DistanceCells) > 0;
+            return UsableObstacleCount() > 0;
         }
 
         public int ValidObstacleCount(float targetDistanceCells)
@@ -212,6 +216,20 @@ namespace CEHitChanceCalculator
             for (int i = 0; i < Obstacles.Count; i++)
             {
                 if (Obstacles[i] != null && Obstacles[i].IsValid(targetDistanceCells))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        public int UsableObstacleCount()
+        {
+            int count = 0;
+            for (int i = 0; i < Obstacles.Count; i++)
+            {
+                if (Obstacles[i] != null && Obstacles[i].IsUsable())
                 {
                     count++;
                 }
@@ -280,7 +298,11 @@ namespace CEHitChanceCalculator
 
         public static HitChanceResult Calculate(HitChanceInputs input)
         {
-            HitChanceObstacleBridge.TryGetFor(input, out LineOfFireObstacleContext obstacleContext);
+            bool hasObstacleContext = HitChanceObstacleBridge.TryGetFor(input, out LineOfFireObstacleContext obstacleContext);
+            if (!hasObstacleContext)
+            {
+                obstacleContext = null;
+            }
             return Calculate(input, obstacleContext);
         }
 
@@ -294,16 +316,19 @@ namespace CEHitChanceCalculator
             float targetCollisionWidthCells = input.TargetWidthMeters / MetersPerCellHeight;
             float targetWidthForCeMath = Mathf.Sqrt(targetCollisionWidthCells * targetCollisionWidthCells * 2f);
             float targetHeightCells = input.TargetHeightMeters / MetersPerCellHeight;
-            float targetAimHeight = CalculateTargetAimHeight(input, targetHeightCells);
+            float targetCoverHeight = CalculateTargetCoverHeight(activeObstacles);
+            float targetAimHeight = AdjustTargetAimHeightForCover(CalculateTargetAimHeight(input, targetHeightCells), targetHeightCells, targetCoverHeight);
+            float adjustedShotHeight = AdjustShotHeightForTargetCover(input.ShotHeightCells, input.ShooterMaxHeightCells, targetHeightCells, targetCoverHeight);
             float offset = targetAimHeight;
-            float gravityPerWidth = CalculateGravityPerWidth(input.GravityFactor);
-            float shotAngle = SolveLowArcShotAngle(input.DistanceCells, input.ShotHeightCells, targetAimHeight, input.ShotSpeedCellsPerSecond, gravityPerWidth);
+            float gravityPerWidth = CalculateEffectiveGravityPerWidth(input);
+            float shotAngle = SolveLowArcShotAngle(input.DistanceCells, adjustedShotHeight, targetAimHeight, input.ShotSpeedCellsPerSecond, gravityPerWidth);
             float rangeError = CalculateRangeError(input.DistanceCells, input.MaxRangeCells, input.AimingAccuracy, input.SightsEfficiency);
             float lightingRangeMultiplier = LightingRangeMultiplier(input.DistanceCells);
             float environmentShift = CalculateEnvironmentShift(input, lightingRangeMultiplier);
             float visibilityError = CalculateVisibilityError(input, environmentShift);
             float leadError = CalculateLeadError(input, lightingRangeMultiplier);
             float effectiveSway = CalculateEffectiveSway(input);
+            float effectiveSpread = CalculateEffectiveSpread(input);
             int burstShotIntervalTicks = CalculateTicksBetweenShots(input.Rpm);
             float visibilityScalar = Mathf.Sqrt(
                 visibilityError * visibilityError
@@ -316,6 +341,8 @@ namespace CEHitChanceCalculator
                 TargetWidthCellsForCeMath = targetWidthForCeMath,
                 TargetHeightCells = targetHeightCells,
                 TargetAimHeightCells = targetAimHeight,
+                TargetCoverHeightCells = targetCoverHeight,
+                AdjustedShotHeightCells = adjustedShotHeight,
                 ShotAngleRadians = shotAngle,
                 VisibilityScalarCells = visibilityScalar,
                 VisibilityErrorCells = visibilityError,
@@ -323,13 +350,16 @@ namespace CEHitChanceCalculator
                 RangeErrorCells = rangeError,
                 EnvironmentShift = environmentShift,
                 LightingRangeMultiplier = lightingRangeMultiplier,
-                RangeVerticalErrorCells = CalculateRangeVerticalError(input, rangeError, targetAimHeight, gravityPerWidth),
+                RangeVerticalErrorCells = CalculateRangeVerticalError(input, rangeError, targetAimHeight, adjustedShotHeight, gravityPerWidth),
                 EffectiveSwayDegrees = effectiveSway,
+                EffectiveSpreadDegrees = effectiveSpread,
                 BurstShotIntervalTicks = burstShotIntervalTicks,
                 GravityPerWidth = gravityPerWidth,
+                InstantProjectile = input.InstantProjectile,
+                InstantProjectileIgnoresMechanicalSpread = input.InstantProjectileIgnoresMechanicalSpread,
                 TargetModeForcedTorso = IsTargetModeForcedTorso(input),
                 LineOfFireObstaclesApplied = activeObstacles != null,
-                LineOfFireObstacleCount = activeObstacles?.ValidObstacleCount(input.DistanceCells) ?? 0,
+                LineOfFireObstacleCount = activeObstacles?.UsableObstacleCount() ?? 0,
                 LineOfFireObstacleLabel = activeObstacles?.DisplayLabel(),
                 CeEstimatedSingle = CalculateCeHitPercent(
                     input.DistanceCells,
@@ -339,12 +369,12 @@ namespace CEHitChanceCalculator
                     input.ShotSpeedCellsPerSecond,
                     shotAngle,
                     effectiveSway,
-                    input.SpreadDegrees,
+                    effectiveSpread,
                     visibilityScalar,
                     gravityPerWidth)
             };
 
-            RunMonteCarlo(input, result, targetCollisionWidthCells, targetHeightCells, targetAimHeight, visibilityError, leadError, rangeError, effectiveSway, burstShotIntervalTicks, gravityPerWidth, activeObstacles);
+            RunMonteCarlo(input, result, targetCollisionWidthCells, targetHeightCells, targetAimHeight, adjustedShotHeight, visibilityError, leadError, rangeError, effectiveSway, effectiveSpread, burstShotIntervalTicks, gravityPerWidth, activeObstacles);
             SetAxisDiagnostics(result);
             return result;
         }
@@ -424,14 +454,22 @@ namespace CEHitChanceCalculator
             // 这里复用单发模拟，让图里的轨迹云和蒙特卡洛概率来自同一套近似模型。
             float targetCollisionWidthCells = input.TargetWidthMeters / MetersPerCellHeight;
             float targetHeightCells = input.TargetHeightMeters / MetersPerCellHeight;
-            float targetAimHeight = CalculateTargetAimHeight(input, targetHeightCells);
-            float gravityPerWidth = CalculateGravityPerWidth(input.GravityFactor);
+            bool hasObstacleContext = HitChanceObstacleBridge.TryGetFor(input, out LineOfFireObstacleContext obstacleContext);
+            if (!hasObstacleContext)
+            {
+                obstacleContext = null;
+            }
+            float targetCoverHeight = CalculateTargetCoverHeight(obstacleContext);
+            float targetAimHeight = AdjustTargetAimHeightForCover(CalculateTargetAimHeight(input, targetHeightCells), targetHeightCells, targetCoverHeight);
+            float adjustedShotHeight = AdjustShotHeightForTargetCover(input.ShotHeightCells, input.ShooterMaxHeightCells, targetHeightCells, targetCoverHeight);
+            float gravityPerWidth = CalculateEffectiveGravityPerWidth(input);
             float rangeError = CalculateRangeError(input.DistanceCells, input.MaxRangeCells, input.AimingAccuracy, input.SightsEfficiency);
             float lightingRangeMultiplier = LightingRangeMultiplier(input.DistanceCells);
             float environmentShift = CalculateEnvironmentShift(input, lightingRangeMultiplier);
             float visibilityError = CalculateVisibilityError(input, environmentShift);
             float leadError = CalculateLeadError(input, lightingRangeMultiplier);
             float effectiveSway = CalculateEffectiveSway(input);
+            float effectiveSpread = CalculateEffectiveSpread(input);
             int burstShotIntervalTicks = CalculateTicksBetweenShots(input.Rpm);
             int burstShots = Mathf.Clamp(input.BurstShots, 1, 60);
             int samples = CalculateDistributionSamples(input);
@@ -440,13 +478,13 @@ namespace CEHitChanceCalculator
                 SampleCount = samples,
                 BurstShots = burstShots,
                 DistanceCells = input.DistanceCells,
-                ShotHeightCells = input.ShotHeightCells,
+                ShotHeightCells = adjustedShotHeight,
                 TargetWidthCells = targetCollisionWidthCells,
                 TargetHeightCells = targetHeightCells,
                 TargetAimHeightCells = targetAimHeight,
                 HorizontalExtentCells = Mathf.Max(1f, targetCollisionWidthCells),
-                VerticalMinCells = Mathf.Min(0f, input.ShotHeightCells, targetAimHeight),
-                VerticalMaxCells = Mathf.Max(targetHeightCells, input.ShotHeightCells, targetAimHeight)
+                VerticalMinCells = Mathf.Min(0f, adjustedShotHeight, targetAimHeight),
+                VerticalMaxCells = Mathf.Max(targetHeightCells, adjustedShotHeight, targetAimHeight)
             };
 
             var rng = new System.Random(input.Seed);
@@ -471,9 +509,11 @@ namespace CEHitChanceCalculator
                         targetCollisionWidthCells,
                         targetHeightCells,
                         targetAimHeight,
+                        adjustedShotHeight,
                         visibilityError,
                         leadError,
                         effectiveSway,
+                        effectiveSpread,
                         gravityPerWidth,
                         hasLockedBaseAim,
                         lockedBaseRotationDegrees,
@@ -514,7 +554,10 @@ namespace CEHitChanceCalculator
                 MaxRangeCells = source.MaxRangeCells,
                 ShotSpeedCellsPerSecond = source.ShotSpeedCellsPerSecond,
                 ShotHeightCells = source.ShotHeightCells,
+                ShooterMaxHeightCells = source.ShooterMaxHeightCells,
                 GravityFactor = source.GravityFactor,
+                InstantProjectile = source.InstantProjectile,
+                InstantProjectileIgnoresMechanicalSpread = source.InstantProjectileIgnoresMechanicalSpread,
                 TargetHeightMeters = source.TargetHeightMeters,
                 TargetWidthMeters = source.TargetWidthMeters,
                 TargetArmorSharp = source.TargetArmorSharp,
@@ -584,6 +627,11 @@ namespace CEHitChanceCalculator
             return GravityConst * Mathf.Max(0f, gravityFactor);
         }
 
+        public static float CalculateEffectiveGravityPerWidth(HitChanceInputs input)
+        {
+            return input != null && input.InstantProjectile ? 0f : CalculateGravityPerWidth(input?.GravityFactor ?? 1f);
+        }
+
         public static float CalculateAccuracyFactor(float aimingAccuracy, float sightsEfficiency)
         {
             return (1.5f - aimingAccuracy) / Mathf.Max(0.02f, sightsEfficiency);
@@ -616,6 +664,16 @@ namespace CEHitChanceCalculator
             return baseSway;
         }
 
+        public static float CalculateEffectiveSpread(HitChanceInputs input)
+        {
+            if (input != null && input.InstantProjectile && input.InstantProjectileIgnoresMechanicalSpread)
+            {
+                return 0f;
+            }
+
+            return Mathf.Max(0f, input?.SpreadDegrees ?? 0f);
+        }
+
         public static float CalculateTargetAimHeight(HitChanceInputs input, float targetHeightCells)
         {
             if (IsTargetModeForcedTorso(input))
@@ -644,6 +702,50 @@ namespace CEHitChanceCalculator
             return (targetHeightCells * 0.45f + targetHeightCells * 0.85f) * 0.5f;
         }
 
+        private static float CalculateTargetCoverHeight(LineOfFireObstacleContext obstacleContext)
+        {
+            if (obstacleContext == null || !obstacleContext.Enabled)
+            {
+                return 0f;
+            }
+
+            float coverHeight = 0f;
+            for (int i = 0; i < obstacleContext.Obstacles.Count; i++)
+            {
+                LineOfFireObstacle obstacle = obstacleContext.Obstacles[i];
+                if (obstacle != null && obstacle.IsUsable())
+                {
+                    coverHeight = Mathf.Max(coverHeight, obstacle.MaxHeightCells);
+                }
+            }
+
+            return coverHeight;
+        }
+
+        private static float AdjustTargetAimHeightForCover(float baseAimHeight, float targetHeightCells, float targetCoverHeightCells)
+        {
+            if (targetCoverHeightCells <= 0f)
+            {
+                return baseAimHeight;
+            }
+
+            float visibleMin = Mathf.Clamp(targetCoverHeightCells, 0f, targetHeightCells);
+            float coveredAimHeight = (visibleMin + targetHeightCells) * 0.5f;
+            return Mathf.Clamp(Mathf.Max(baseAimHeight, coveredAimHeight), 0f, targetHeightCells);
+        }
+
+        public static float AdjustShotHeightForTargetCover(float shotHeightCells, float shooterMaxHeightCells, float targetHeightCells, float targetCoverHeightCells)
+        {
+            float maxHeight = Mathf.Max(shooterMaxHeightCells, shotHeightCells);
+            if (targetCoverHeightCells <= 0f)
+            {
+                return shotHeightCells;
+            }
+
+            float desired = ((targetHeightCells - targetCoverHeightCells) * 0.5f) + targetCoverHeightCells;
+            return desired > shotHeightCells ? Mathf.Min(desired, maxHeight) : shotHeightCells;
+        }
+
         public static float CalculateEnvironmentShift(HitChanceInputs input, float lightingRangeMultiplier)
         {
             // 黑暗、天气、烟雾和盲射没有完全照搬 CE 内部每个分支。
@@ -665,6 +767,11 @@ namespace CEHitChanceCalculator
 
         public static float CalculateLeadError(HitChanceInputs input, float lightingRangeMultiplier)
         {
+            if (input.InstantProjectile)
+            {
+                return 0f;
+            }
+
             if (input.BlindFiring)
             {
                 return 0f;
@@ -680,6 +787,11 @@ namespace CEHitChanceCalculator
 
         public static float CalculateLeadDistance(HitChanceInputs input)
         {
+            if (input.InstantProjectile)
+            {
+                return 0f;
+            }
+
             return Mathf.Max(0f, input.TargetMoveSpeedCellsPerSecond) * input.DistanceCells / Mathf.Max(1f, input.ShotSpeedCellsPerSecond);
         }
 
@@ -724,7 +836,7 @@ namespace CEHitChanceCalculator
             return y0 + (y1 - y0) * ((x - x0) / (x1 - x0));
         }
 
-        public static float CalculateRangeVerticalError(HitChanceInputs input, float rangeError, float targetCenterHeight, float gravityPerWidth)
+        public static float CalculateRangeVerticalError(HitChanceInputs input, float rangeError, float targetCenterHeight, float shotHeight, float gravityPerWidth)
         {
             // 射程误差在本模型里主要影响垂直落点：射手估错距离后会用错误距离解仰角，
             // 真正飞到当前目标平面时就表现为高低偏差。
@@ -735,14 +847,14 @@ namespace CEHitChanceCalculator
 
             float lowDistance = Mathf.Max(0.1f, input.DistanceCells - rangeError);
             float highDistance = Mathf.Max(0.1f, input.DistanceCells + rangeError);
-            float lowAngle = SolveLowArcShotAngle(lowDistance, input.ShotHeightCells, targetCenterHeight, input.ShotSpeedCellsPerSecond, gravityPerWidth);
-            float highAngle = SolveLowArcShotAngle(highDistance, input.ShotHeightCells, targetCenterHeight, input.ShotSpeedCellsPerSecond, gravityPerWidth);
-            float lowError = ProjectileHeightAtDistance(input.DistanceCells, input.ShotHeightCells, input.ShotSpeedCellsPerSecond, lowAngle, gravityPerWidth) - targetCenterHeight;
-            float highError = ProjectileHeightAtDistance(input.DistanceCells, input.ShotHeightCells, input.ShotSpeedCellsPerSecond, highAngle, gravityPerWidth) - targetCenterHeight;
+            float lowAngle = SolveLowArcShotAngle(lowDistance, shotHeight, targetCenterHeight, input.ShotSpeedCellsPerSecond, gravityPerWidth);
+            float highAngle = SolveLowArcShotAngle(highDistance, shotHeight, targetCenterHeight, input.ShotSpeedCellsPerSecond, gravityPerWidth);
+            float lowError = ProjectileHeightAtDistance(input.DistanceCells, shotHeight, input.ShotSpeedCellsPerSecond, lowAngle, gravityPerWidth) - targetCenterHeight;
+            float highError = ProjectileHeightAtDistance(input.DistanceCells, shotHeight, input.ShotSpeedCellsPerSecond, highAngle, gravityPerWidth) - targetCenterHeight;
             return Mathf.Max(Mathf.Abs(lowError), Mathf.Abs(highError));
         }
 
-        private static void RunMonteCarlo(HitChanceInputs input, HitChanceResult result, float targetWidthCells, float targetHeightCells, float targetAimHeight, float visibilityError, float leadError, float rangeError, float effectiveSway, int burstShotIntervalTicks, float gravityPerWidth, LineOfFireObstacleContext obstacleContext)
+        private static void RunMonteCarlo(HitChanceInputs input, HitChanceResult result, float targetWidthCells, float targetHeightCells, float targetAimHeight, float adjustedShotHeight, float visibilityError, float leadError, float rangeError, float effectiveSway, float effectiveSpread, int burstShotIntervalTicks, float gravityPerWidth, LineOfFireObstacleContext obstacleContext)
         {
             // 蒙特卡洛负责把水平误差、垂直弹道、连发后坐力和近失分开统计。
             // 采样量越高越稳定，但 OnGUI 中不能反复重算，调用方必须依赖缓存。
@@ -780,9 +892,11 @@ namespace CEHitChanceCalculator
                         targetWidthCells,
                         targetHeightCells,
                         targetAimHeight,
+                        adjustedShotHeight,
                         visibilityError,
                         leadError,
                         effectiveSway,
+                        effectiveSpread,
                         gravityPerWidth,
                         hasLockedBaseAim,
                         lockedBaseRotationDegrees,
@@ -806,7 +920,7 @@ namespace CEHitChanceCalculator
                         }
                     }
 
-                    bool blocked = IsBlockedByObstacle(input, obstacleContext, shotSample, gravityPerWidth);
+                    bool blocked = IsBlockedByObstacle(input, obstacleContext, shotSample, adjustedShotHeight, gravityPerWidth);
                     if (blocked)
                     {
                         perShotBlocked[shot]++;
@@ -876,7 +990,7 @@ namespace CEHitChanceCalculator
             return (int)Mathf.Lerp(30f, 240f, Mathf.Clamp01(Mathf.Max(0f, distanceCells) / 100f));
         }
 
-        private static ShotSample SimulateShot(HitChanceInputs input, System.Random rng, int shotIndex, float estimatedDistance, float burstStartTick, float shooterPhase, int burstShotIntervalTicks, float targetWidthCells, float targetHeightCells, float targetAimHeight, float visibilityError, float leadError, float effectiveSway, float gravityPerWidth, bool hasLockedBaseAim, float lockedBaseRotationDegrees, float lockedBaseShotAngle)
+        private static ShotSample SimulateShot(HitChanceInputs input, System.Random rng, int shotIndex, float estimatedDistance, float burstStartTick, float shooterPhase, int burstShotIntervalTicks, float targetWidthCells, float targetHeightCells, float targetAimHeight, float adjustedShotHeight, float visibilityError, float leadError, float effectiveSway, float effectiveSpread, float gravityPerWidth, bool hasLockedBaseAim, float lockedBaseRotationDegrees, float lockedBaseShotAngle)
         {
             Vector2 sourceLoc = Vector2.zero;
             Vector2 actualTargetLoc = new Vector2(0f, input.DistanceCells);
@@ -895,7 +1009,7 @@ namespace CEHitChanceCalculator
 
             float baseRotationDegrees = RotationDegreesTo(shiftedTargetLoc);
             float shiftedTargetDistance = Mathf.Max(0.01f, shiftedTargetLoc.magnitude);
-            float baseShotAngle = SolveLowArcShotAngle(shiftedTargetDistance, input.ShotHeightCells, targetAimHeight, input.ShotSpeedCellsPerSecond, gravityPerWidth);
+            float baseShotAngle = SolveLowArcShotAngle(shiftedTargetDistance, adjustedShotHeight, targetAimHeight, input.ShotSpeedCellsPerSecond, gravityPerWidth);
             float sampledBaseRotationDegrees = baseRotationDegrees;
             float sampledBaseShotAngle = baseShotAngle;
             // 同一次连发只在首发时重新估计基础瞄准点；后续弹沿用该瞄准基准，
@@ -906,7 +1020,7 @@ namespace CEHitChanceCalculator
                 baseShotAngle = lockedBaseShotAngle;
             }
 
-            Vector2 spread = RandomInsideUnitCircle(rng, input.SpreadDegrees);
+            Vector2 spread = RandomInsideUnitCircle(rng, effectiveSpread);
             Vector2 sway = SwayAtTick(effectiveSway, burstStartTick + shooterPhase + shotIndex * burstShotIntervalTicks);
             Vector2 recoil = RandomRecoil(rng, input.RecoilAmount, input.ShootingAccuracy, shotIndex);
 
@@ -923,14 +1037,14 @@ namespace CEHitChanceCalculator
             float horizontalTravelToTargetPlane = input.DistanceCells / cosRotation;
             float futureTargetX = input.BlindFiring ? 0f : CalculateLeadVector(input, CalculateLeadDistance(input)).x;
             float horizontalMiss = Mathf.Tan(rotationRadians) * input.DistanceCells - futureTargetX;
-            float projectileHeightAtTarget = ProjectileHeightAtDistance(horizontalTravelToTargetPlane, input.ShotHeightCells, input.ShotSpeedCellsPerSecond, finalShotAngle, gravityPerWidth);
+            float projectileHeightAtTarget = ProjectileHeightAtDistance(horizontalTravelToTargetPlane, adjustedShotHeight, input.ShotSpeedCellsPerSecond, finalShotAngle, gravityPerWidth);
 
             bool horizontalHit = Mathf.Abs(horizontalMiss) <= targetWidthCells * 0.5f;
             bool verticalHit = projectileHeightAtTarget >= 0f && projectileHeightAtTarget <= targetHeightCells;
             return new ShotSample(horizontalHit, verticalHit, horizontalMiss, projectileHeightAtTarget, finalShotAngle, sampledBaseRotationDegrees, sampledBaseShotAngle, rotationRadians);
         }
 
-        private static bool IsBlockedByObstacle(HitChanceInputs input, LineOfFireObstacleContext obstacleContext, ShotSample shotSample, float gravityPerWidth)
+        private static bool IsBlockedByObstacle(HitChanceInputs input, LineOfFireObstacleContext obstacleContext, ShotSample shotSample, float adjustedShotHeight, float gravityPerWidth)
         {
             if (obstacleContext == null || !obstacleContext.Enabled || obstacleContext.Obstacles.Count == 0)
             {
@@ -959,7 +1073,7 @@ namespace CEHitChanceCalculator
                 }
 
                 float travelDistance = obstacle.DistanceCells / cosRotation;
-                float heightAtObstacle = ProjectileHeightAtDistance(travelDistance, input.ShotHeightCells, input.ShotSpeedCellsPerSecond, shotSample.FinalShotAngleRadians, gravityPerWidth);
+                float heightAtObstacle = ProjectileHeightAtDistance(travelDistance, adjustedShotHeight, input.ShotSpeedCellsPerSecond, shotSample.FinalShotAngleRadians, gravityPerWidth);
                 if (heightAtObstacle >= obstacle.MinHeightCells && heightAtObstacle <= obstacle.MaxHeightCells)
                 {
                     return true;
@@ -1158,6 +1272,8 @@ namespace CEHitChanceCalculator
             input.DistanceCells = Mathf.Max(0.1f, input.DistanceCells);
             input.MaxRangeCells = Mathf.Max(1f, input.MaxRangeCells);
             input.ShotSpeedCellsPerSecond = Mathf.Max(1f, input.ShotSpeedCellsPerSecond);
+            input.ShotHeightCells = Mathf.Max(0f, input.ShotHeightCells);
+            input.ShooterMaxHeightCells = Mathf.Max(input.ShotHeightCells, input.ShooterMaxHeightCells);
             input.GravityFactor = Mathf.Max(0f, input.GravityFactor);
             input.TargetHeightMeters = Mathf.Max(0.05f, input.TargetHeightMeters);
             input.TargetWidthMeters = Mathf.Max(0.05f, input.TargetWidthMeters);

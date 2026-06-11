@@ -24,6 +24,8 @@ namespace CEHitChanceCalculator
         public ArmorDamageKind ArmorKind = ArmorDamageKind.None;
         public float ArmorPenetrationSharp;
         public float ArmorPenetrationBlunt;
+        public bool UsesAmbientArmorFormula;
+        public bool UsesLaserDamageFalloff;
     }
 
     public sealed class DamageProfile
@@ -44,6 +46,7 @@ namespace CEHitChanceCalculator
     {
         public float ShotsPerSecond;
         public float AverageDirectHitChance;
+        public float DirectEffectiveDamagePerShot;
         public float DirectArmoredDamagePerShot;
         public float RangeArmoredDamagePerShot;
         public float DirectPaperDps;
@@ -68,6 +71,8 @@ namespace CEHitChanceCalculator
         public float FragmentPaperDps;
         public int AimedExtraTicks;
         public float RepeatWarmupReduction = 1f;
+        public bool HasLaserDamageFalloff;
+        public float LaserDamageFalloffMultiplier = 1f;
     }
 
     public sealed class ArmorDamageResult
@@ -149,6 +154,7 @@ namespace CEHitChanceCalculator
             float hitChanceSum = SumPerShotChance(hitResult);
             float averageNearMissChance = AverageNearMissChance(hitResult);
             float nearMissChanceSum = SumNearMissChance(hitResult);
+            float directEffectiveDamage = SumEffectiveDamage(profile.DirectLines, input, profile.DirectDamagePerShot);
             float directDamage = SumArmoredDamage(profile.DirectLines, input, profile.DirectDamagePerShot);
             float rangeDamage = SumArmoredDamage(profile.RangeLines, input, SumDamage(profile.RangeLines));
             float totalDamage = directDamage + rangeDamage;
@@ -165,9 +171,10 @@ namespace CEHitChanceCalculator
             {
                 ShotsPerSecond = shotsPerSecond,
                 AverageDirectHitChance = averageHitChance,
+                DirectEffectiveDamagePerShot = directEffectiveDamage,
                 DirectArmoredDamagePerShot = directDamage,
                 RangeArmoredDamagePerShot = rangeDamage,
-                DirectPaperDps = profile.DirectDamagePerShot * shotsPerSecond,
+                DirectPaperDps = directEffectiveDamage * shotsPerSecond,
                 DirectExpectedDps = directDamage * averageHitChance * shotsPerSecond,
                 DirectExpectedDamagePerBurst = directDamage * hitChanceSum,
                 DirectExpectedDpsMagazine = directMagazineDps,
@@ -188,7 +195,9 @@ namespace CEHitChanceCalculator
                 FragmentPaperDamagePerShot = fragmentDamage,
                 FragmentPaperDps = fragmentDamage * shotsPerSecond,
                 AimedExtraTicks = aimedExtraTicks,
-                RepeatWarmupReduction = repeatWarmupReduction
+                RepeatWarmupReduction = repeatWarmupReduction,
+                HasLaserDamageFalloff = HasLaserDamageFalloff(profile.DirectLines),
+                LaserDamageFalloffMultiplier = LaserDamageFalloffMultiplier(profile.DirectLines, input)
             };
         }
 
@@ -541,6 +550,25 @@ namespace CEHitChanceCalculator
             return sum;
         }
 
+        private static float SumEffectiveDamage(List<DamageLine> lines, HitChanceInputs input, float fallback)
+        {
+            if (lines == null || lines.Count == 0)
+            {
+                return Mathf.Max(0f, fallback);
+            }
+
+            float sum = 0f;
+            for (int i = 0; i < lines.Count; i++)
+            {
+                DamageLine line = lines[i];
+                if (line != null)
+                {
+                    sum += Mathf.Max(0f, line.DamagePerShot) * DamageMultiplierForLine(line, input);
+                }
+            }
+            return sum;
+        }
+
         private static float SumArmoredDamage(List<DamageLine> lines, HitChanceInputs input, float fallback)
         {
             if (lines == null || lines.Count == 0)
@@ -557,11 +585,58 @@ namespace CEHitChanceCalculator
                     continue;
                 }
 
-                float each = ArmorEventDamage(line);
+                float each = ArmorEventDamage(line) * DamageMultiplierForLine(line, input);
                 float multiplier = ArmorEventMultiplier(line);
-                sum += CalculatePostArmorDamage(each, line.ArmorKind, line.ArmorPenetrationSharp, line.ArmorPenetrationBlunt, input.TargetArmorSharp, input.TargetArmorBlunt, input.TargetArmorHeat, input.TargetArmorElectric) * multiplier;
+                sum += CalculatePostArmorDamage(each, line.ArmorKind, line.ArmorPenetrationSharp, line.ArmorPenetrationBlunt, input.TargetArmorSharp, input.TargetArmorBlunt, input.TargetArmorHeat, input.TargetArmorElectric, line.UsesAmbientArmorFormula) * multiplier;
             }
             return sum;
+        }
+
+        public static float CalculateLaserDamageFalloffMultiplier(float distanceCells, float spreadDegrees)
+        {
+            // CE 的 LaserBeamCE 在 RayCast 中用光束孔径和散布角计算 DamageModifier。
+            // 这里按目标距离取近似值，并把大于纸面的极端近距离结果夹到 100%。
+            const float apertureSize = 0.03f;
+            const float baseAngleRadians = 0.00052359875f;
+            float distance = Mathf.Max(1f, distanceCells);
+            float spreadSin = Mathf.Sin(Mathf.Max(0f, spreadDegrees) * 0.5f * Mathf.Deg2Rad);
+            float baseRadius = Mathf.Sin(baseAngleRadians) + apertureSize;
+            float radius = distance * spreadSin + apertureSize;
+            if (radius <= 0.0001f)
+            {
+                return 1f;
+            }
+            return Mathf.Clamp01((baseRadius * baseRadius) / (radius * radius));
+        }
+
+        private static float DamageMultiplierForLine(DamageLine line, HitChanceInputs input)
+        {
+            if (line != null && line.UsesLaserDamageFalloff)
+            {
+                return CalculateLaserDamageFalloffMultiplier(input?.DistanceCells ?? 0f, input?.SpreadDegrees ?? 0f);
+            }
+            return 1f;
+        }
+
+        private static bool HasLaserDamageFalloff(List<DamageLine> lines)
+        {
+            if (lines == null)
+            {
+                return false;
+            }
+            for (int i = 0; i < lines.Count; i++)
+            {
+                if (lines[i]?.UsesLaserDamageFalloff == true)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static float LaserDamageFalloffMultiplier(List<DamageLine> lines, HitChanceInputs input)
+        {
+            return HasLaserDamageFalloff(lines) ? CalculateLaserDamageFalloffMultiplier(input?.DistanceCells ?? 0f, input?.SpreadDegrees ?? 0f) : 1f;
         }
 
         private static float ArmorEventDamage(DamageLine line)
@@ -590,7 +665,7 @@ namespace CEHitChanceCalculator
             return Mathf.Max(1, line.Count);
         }
 
-        public static float CalculatePostArmorDamage(float damage, ArmorDamageKind kind, float sharpPen, float bluntPen, float sharpArmor, float bluntArmor, float heatArmor = 0f, float electricArmor = 0f)
+        public static float CalculatePostArmorDamage(float damage, ArmorDamageKind kind, float sharpPen, float bluntPen, float sharpArmor, float bluntArmor, float heatArmor = 0f, float electricArmor = 0f, bool useAmbientFormula = false)
         {
             // 护甲后伤害是报表近似：按一个代表部位的综合护甲计算。
             // 真实 CE 会按命中部位、衣物层、天然护甲和随机判定逐层结算。
@@ -603,6 +678,26 @@ namespace CEHitChanceCalculator
             if (damage <= 0f || kind == ArmorDamageKind.None)
             {
                 return damage;
+            }
+
+            if (useAmbientFormula)
+            {
+                if (kind == ArmorDamageKind.Sharp)
+                {
+                    return damage * AmbientPenetrationMultiplier(sharpPen, sharpArmor);
+                }
+                if (kind == ArmorDamageKind.Blunt)
+                {
+                    return damage * AmbientPenetrationMultiplier(bluntPen, bluntArmor);
+                }
+                if (kind == ArmorDamageKind.Heat)
+                {
+                    return damage * AmbientPenetrationMultiplier(bluntPen, heatArmor);
+                }
+                if (kind == ArmorDamageKind.Electric)
+                {
+                    return damage * AmbientPenetrationMultiplier(bluntPen, electricArmor);
+                }
             }
 
             if (kind == ArmorDamageKind.Blunt)
@@ -655,6 +750,12 @@ namespace CEHitChanceCalculator
             return Mathf.Clamp01((pen - armor) / pen);
         }
 
+        private static float AmbientPenetrationMultiplier(float pen, float armor)
+        {
+            // CE 的 ambient damage 使用 1 + penetration - armorRating，而不是普通穿透比例。
+            return Mathf.Clamp01(1f + Mathf.Max(0f, pen) - Mathf.Max(0f, armor));
+        }
+
         public static ArmorDamageResult CalculatePrimaryArmorResult(DamageProfile profile, HitChanceInputs input)
         {
             var result = new ArmorDamageResult();
@@ -672,9 +773,10 @@ namespace CEHitChanceCalculator
                     }
 
                     float multiplier = ArmorEventMultiplier(line);
-                    float each = ArmorEventDamage(line);
-                    ArmorDamageResult eachResult = CalculateArmorBreakdown(each, line.ArmorKind, line.ArmorPenetrationSharp, line.ArmorPenetrationBlunt, input.TargetArmorSharp, input.TargetArmorBlunt, input.TargetArmorHeat, input.TargetArmorElectric);
-                    result.PaperDamage += Mathf.Max(0f, line.DamagePerShot);
+                    float damageMultiplier = DamageMultiplierForLine(line, input);
+                    float each = ArmorEventDamage(line) * damageMultiplier;
+                    ArmorDamageResult eachResult = CalculateArmorBreakdown(each, line.ArmorKind, line.ArmorPenetrationSharp, line.ArmorPenetrationBlunt, input.TargetArmorSharp, input.TargetArmorBlunt, input.TargetArmorHeat, input.TargetArmorElectric, line.UsesAmbientArmorFormula);
+                    result.PaperDamage += Mathf.Max(0f, line.DamagePerShot) * damageMultiplier;
                     result.PostArmorDamage += eachResult.PostArmorDamage * multiplier;
                     result.SharpDamage += eachResult.SharpDamage * multiplier;
                     result.BluntDamage += eachResult.BluntDamage * multiplier;
@@ -740,7 +842,7 @@ namespace CEHitChanceCalculator
             return result.BluntPenetration;
         }
 
-        private static ArmorDamageResult CalculateArmorBreakdown(float damage, ArmorDamageKind kind, float sharpPen, float bluntPen, float sharpArmor, float bluntArmor, float heatArmor, float electricArmor)
+        private static ArmorDamageResult CalculateArmorBreakdown(float damage, ArmorDamageKind kind, float sharpPen, float bluntPen, float sharpArmor, float bluntArmor, float heatArmor, float electricArmor, bool useAmbientFormula)
         {
             // 与 CalculatePostArmorDamage 使用同一套公式，但保留锐伤/钝伤/热伤/电伤拆分给 UI 解释。
             // 如果以后调整护甲公式，两个函数必须同步改。
@@ -757,6 +859,37 @@ namespace CEHitChanceCalculator
                 result.PostArmorDamage = Mathf.Max(0f, damage);
                 result.UnmodeledDamage = result.PostArmorDamage;
                 return result;
+            }
+
+            if (useAmbientFormula)
+            {
+                if (kind == ArmorDamageKind.Sharp)
+                {
+                    result.SharpDamage = damage * AmbientPenetrationMultiplier(result.SharpPenetration, sharpArmor);
+                    result.PostArmorDamage = result.SharpDamage;
+                    return result;
+                }
+                if (kind == ArmorDamageKind.Blunt)
+                {
+                    result.EffectiveBluntPenetration = result.BluntPenetration;
+                    result.BluntDamage = damage * AmbientPenetrationMultiplier(result.BluntPenetration, bluntArmor);
+                    result.PostArmorDamage = result.BluntDamage;
+                    return result;
+                }
+                if (kind == ArmorDamageKind.Heat)
+                {
+                    result.HeatPenetration = result.BluntPenetration;
+                    result.HeatDamage = damage * AmbientPenetrationMultiplier(result.HeatPenetration, heatArmor);
+                    result.PostArmorDamage = result.HeatDamage;
+                    return result;
+                }
+                if (kind == ArmorDamageKind.Electric)
+                {
+                    result.ElectricPenetration = result.BluntPenetration;
+                    result.ElectricDamage = damage * AmbientPenetrationMultiplier(result.ElectricPenetration, electricArmor);
+                    result.PostArmorDamage = result.ElectricDamage;
+                    return result;
+                }
             }
 
             if (kind == ArmorDamageKind.Blunt)

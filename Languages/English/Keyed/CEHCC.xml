@@ -7,6 +7,8 @@
   <CEHCC_WindowTitle>CE Accuracy and Firepower Analyzer</CEHCC_WindowTitle>
   <CEHCC_GlossaryTooltip>Glossary</CEHCC_GlossaryTooltip>
   <CEHCC_GlossaryTitle>Glossary</CEHCC_GlossaryTitle>
+  <CEHCC_MinimizeWindow>Minimize</CEHCC_MinimizeWindow>
+  <CEHCC_RestoreWindow>Restore</CEHCC_RestoreWindow>
   <CEHCC_GlossaryBody><![CDATA[Monte Carlo first shot
 Simulates the first bullet with many random samples. It is closer to real firing samples, but still an approximation.
 
@@ -109,6 +111,9 @@ CE's AimingAccuracy. During aimed shots, it determines how much base sway can be
 Sight efficiency
 Weapon sight efficiency. It is used by aimed shots and visibility error.
 
+Instant / laser trajectory
+Some CE laser projectiles use instant raycast checks instead of ordinary flying projectiles. This analyzer approximates them as straight instant rays: flight-time lead and gravity are ignored; when the projectile uses laser damage falloff, mechanical spread is not applied as hit spread.
+
 FasterRepeatShots
 A CE setting. When enabled, repeated shots toward a similar direction have shortened later warmups. This analyzer approximates it as continuing to fire in the same direction.
 
@@ -142,6 +147,13 @@ The approximation condition used by this analyzer for FasterRepeatShots. If the 
   <CEHCC_TargetPresetDmsTarbosaurus>Tarbosaurus (DMS)</CEHCC_TargetPresetDmsTarbosaurus>
   <CEHCC_TargetPresetMenuLine>{0}: height {1}m, width {2}m; sharp {3}, blunt {4}, heat {5}, electric {6}</CEHCC_TargetPresetMenuLine>
   <CEHCC_TargetPresetLoaded>Loaded target preset: {0}.</CEHCC_TargetPresetLoaded>
+  <CEHCC_Tools>Tools</CEHCC_Tools>
+  <CEHCC_ToolsTitle>Tools</CEHCC_ToolsTitle>
+  <CEHCC_ToolsDescription>Choose which CE Fire Field Indicator data collection and fire field buttons appear when a shooter or turret is selected.</CEHCC_ToolsDescription>
+  <CEHCC_ToolShowFireFieldGizmo>Show fire field button</CEHCC_ToolShowFireFieldGizmo>
+  <CEHCC_ToolShowTargetProfileGizmo>Show target profile button</CEHCC_ToolShowTargetProfileGizmo>
+  <CEHCC_ToolShowAimDebugGizmo>Show aimability debug button</CEHCC_ToolShowAimDebugGizmo>
+  <CEHCC_ToolShowObstacleCollectorGizmo>Show data collection button</CEHCC_ToolShowObstacleCollectorGizmo>
   <CEHCC_Recalculate>Recalculate</CEHCC_Recalculate>
   <CEHCC_LoadWeaponNoSelection>Select an armed pawn, a CE turret, or a dropped gun first.</CEHCC_LoadWeaponNoSelection>
   <CEHCC_LoadWeaponNoWeapon>The current selection has no readable ranged weapon.</CEHCC_LoadWeaponNoWeapon>
@@ -197,7 +209,8 @@ The approximation condition used by this analyzer for FasterRepeatShots. If the 
   <CEHCC_DpsRate>Sustained fire rate: {0} shots/sec (estimated from magazine, aim/warmup, cooldown, and reload first).</CEHCC_DpsRate>
   <CEHCC_DpsAverageHit>Average hit chance: {0} (average of current burst per-shot chances).</CEHCC_DpsAverageHit>
   <CEHCC_DpsFasterRepeatShots>Repeat-fire warmup shortened: approximated from CE FasterRepeatShots, assuming continued fire in the same direction; repeat warmup is about {0}% of normal.</CEHCC_DpsFasterRepeatShots>
-  <CEHCC_DpsDirectDamage>Direct: {0}, paper {1}/shot, post-armor {2}/shot.</CEHCC_DpsDirectDamage>
+  <CEHCC_DpsDirectDamage>Direct: {0}, effective {1}/shot, post-armor {2}/shot.</CEHCC_DpsDirectDamage>
+  <CEHCC_DpsLaserFalloff>Laser damage falloff: direct damage at the current range/spread is about {0} of paper value.</CEHCC_DpsLaserFalloff>
   <CEHCC_DpsDirectStats>Direct DPS: paper {0}, expected on hit {1}, current burst expected {2}.</CEHCC_DpsDirectStats>
   <CEHCC_DpsDirectDpsStats>Expected DPS: magazine {0}, 60 sec {1}, long-term {2} (direct + area).</CEHCC_DpsDirectDpsStats>
   <CEHCC_DpsMagazineStats>Expected magazine damage {0}, magazine output time {1} sec, current burst expected {2}.</CEHCC_DpsMagazineStats>
@@ -219,7 +232,7 @@ The approximation condition used by this analyzer for FasterRepeatShots. If the 
   <CEHCC_ArmorTitle>Post-armor damage</CEHCC_ArmorTitle>
   <CEHCC_ArmorTarget>Target armor: sharp {0} mm RHA, blunt {1} MPa, heat {2}, electric {3}.</CEHCC_ArmorTarget>
   <CEHCC_ArmorNoDirectDamage>No direct damage can be calculated yet; load a weapon and ammo to show post-armor results.</CEHCC_ArmorNoDirectDamage>
-  <CEHCC_ArmorDirectResult>Direct paper {0}/shot, post-armor {1}/shot.</CEHCC_ArmorDirectResult>
+  <CEHCC_ArmorDirectResult>Direct effective {0}/shot, post-armor {1}/shot.</CEHCC_ArmorDirectResult>
   <CEHCC_ArmorPenetration>Projectile penetration reference: {0}.</CEHCC_ArmorPenetration>
   <CEHCC_ArmorBreakdown>Damage breakdown: {0}.</CEHCC_ArmorBreakdown>
   <CEHCC_ArmorStatus>Status: {0}</CEHCC_ArmorStatus>
@@ -233,8 +246,11 @@ The approximation condition used by this analyzer for FasterRepeatShots. If the 
   <CEHCC_ArmorApproxNote>Approximation: this uses one representative combined armor value. Real CE resolves apparel layers, covered parts, and natural armor layer by layer.</CEHCC_ArmorApproxNote>
   <CEHCC_ResultTargetBox>Target box used: width {0} cells, height {1} vertical cells, aim height {2} vertical cells. Combined visibility error: {3} cells.</CEHCC_ResultTargetBox>
   <CEHCC_ResultDerivedErrors>Auto calculated errors: visibility {0} cells, lead {1} cells, range {2} cells.</CEHCC_ResultDerivedErrors>
-  <CEHCC_ResultRealFireInputs>Actual firing samples use: effective muzzle sway {0} deg, burst interval {1} ticks, projectile gravity {2}.</CEHCC_ResultRealFireInputs>
+  <CEHCC_ResultRealFireInputs>Actual firing samples use: effective muzzle sway {0} deg, effective mechanical spread {1} deg, burst interval {2} ticks, projectile gravity {3}.</CEHCC_ResultRealFireInputs>
+  <CEHCC_ResultInstantProjectile>Instant trajectory: approximated as a straight ray, ignoring gravity and flight-time lead.</CEHCC_ResultInstantProjectile>
+  <CEHCC_ResultInstantProjectileNoSpread>Instant/laser trajectory: approximated as a straight ray, ignoring gravity, flight-time lead, and mechanical hit spread.</CEHCC_ResultInstantProjectileNoSpread>
   <CEHCC_ResultRangeVertical>Maximum vertical offset from range error: {0} vertical cells (about {1} m).</CEHCC_ResultRangeVertical>
+  <CEHCC_ResultTargetCoverAdjustment>Target-cover adjustment: highest cover {0} vertical cells, effective muzzle height {1} vertical cells.</CEHCC_ResultTargetCoverAdjustment>
   <CEHCC_ResultAxisBreakdown>First-shot split: horizontal pass {0}, vertical pass {1}.</CEHCC_ResultAxisBreakdown>
   <CEHCC_ResultObstacleFilter>Line-of-fire obstacle filter: {0} obstacles; first shot blocked {1}, any burst shot blocked {2}. {3}</CEHCC_ResultObstacleFilter>
   <CEHCC_ResultAxisDiagnosis>Current limiter: {0}. {1}</CEHCC_ResultAxisDiagnosis>
@@ -247,7 +263,8 @@ The approximation condition used by this analyzer for FasterRepeatShots. If the 
   <CEHCC_HintSingleSaturated>First-shot hit chance is already near guaranteed; parameter changes may only show in per-shot bursts or extreme ranges.</CEHCC_HintSingleSaturated>
   <CEHCC_HintVeryLow>First-shot hit chance is very low. Check target width, distance, sway, spread, and visibility error first.</CEHCC_HintVeryLow>
   <CEHCC_HintMixed>Both horizontal and vertical axes are limiting the result. Check the first-shot split and per-shot curve for the main cause.</CEHCC_HintMixed>
-  <CEHCC_WarnSpecialProjectile>Note: current projectile contains {0}; analyzer still approximates it as ordinary direct fire.</CEHCC_WarnSpecialProjectile>
+  <CEHCC_NoteInstantProjectile>Note: current projectile is approximated as an instant/laser trajectory; reflections, shields, and laser damage falloff are still only limited approximations.</CEHCC_NoteInstantProjectile>
+  <CEHCC_WarnSpecialProjectile>Note: current projectile also contains {0}; those special mechanics are still simplified as direct fire.</CEHCC_WarnSpecialProjectile>
   <CEHCC_SpecialProjectileInstant>instant</CEHCC_SpecialProjectileInstant>
   <CEHCC_SpecialProjectilePellets>{0} pellets</CEHCC_SpecialProjectilePellets>
   <CEHCC_SpecialProjectilePowered>powered/variable speed</CEHCC_SpecialProjectilePowered>
@@ -255,6 +272,8 @@ The approximation condition used by this analyzer for FasterRepeatShots. If the 
   <CEHCC_SpecialProjectileShelling>shelling properties</CEHCC_SpecialProjectileShelling>
   <CEHCC_SpecialProjectileFuze>fuze/airburst correction</CEHCC_SpecialProjectileFuze>
   <CEHCC_FasterRepeatShots>FasterRepeatShots (same-direction repeat fire)</CEHCC_FasterRepeatShots>
+  <CEHCC_InstantProjectile>Instant / laser trajectory</CEHCC_InstantProjectile>
+  <CEHCC_InstantIgnoresMechanicalSpread>Instant spread only affects laser falloff</CEHCC_InstantIgnoresMechanicalSpread>
   <CEHCC_TargetModeForcedSuppress>Hint: suppressive fire ignores head/leg selection; currently using torso height.</CEHCC_TargetModeForcedSuppress>
   <CEHCC_TargetModeForcedSkill>Hint: weapon handling {0} is below 2.45; CE ignores head/leg selection, currently using torso height.</CEHCC_TargetModeForcedSkill>
   <CEHCC_ResultPerShot>Per-shot: {0}</CEHCC_ResultPerShot>
@@ -272,6 +291,7 @@ The approximation condition used by this analyzer for FasterRepeatShots. If the 
   <CEHCC_MaxRangeCells>Maximum range (cells)</CEHCC_MaxRangeCells>
   <CEHCC_ProjectileSpeed>Projectile speed (cells/sec)</CEHCC_ProjectileSpeed>
   <CEHCC_ShotHeight>Muzzle height (vertical cells)</CEHCC_ShotHeight>
+  <CEHCC_ShooterMaxHeight>Shooter max height (vertical cells)</CEHCC_ShooterMaxHeight>
   <CEHCC_GravityFactor>Projectile gravity multiplier</CEHCC_GravityFactor>
 
   <CEHCC_SectionWeaponShooter>Weapon and shooter</CEHCC_SectionWeaponShooter>
@@ -411,8 +431,8 @@ Height: {3}-{4} vertical cells</CEHCC_BallisticObstacleTip>
   <CEHCC_ObstacleClear>Clear</CEHCC_ObstacleClear>
   <CEHCC_ObstacleTargetDistance>Target distance</CEHCC_ObstacleTargetDistance>
   <CEHCC_ObstacleDistanceTolerance>Distance tolerance</CEHCC_ObstacleDistanceTolerance>
-  <CEHCC_ObstacleEditorApplies>Active: {0} valid entries.</CEHCC_ObstacleEditorApplies>
-  <CEHCC_ObstacleEditorNotApplied>Not active: check distance, shooter ID, enabled state, or valid entries.</CEHCC_ObstacleEditorNotApplied>
+  <CEHCC_ObstacleEditorApplies>Active: {0} usable entries.</CEHCC_ObstacleEditorApplies>
+  <CEHCC_ObstacleEditorNotApplied>Not active: check enabled state or usable entries.</CEHCC_ObstacleEditorNotApplied>
   <CEHCC_ObstacleEditorEmpty>No path cover yet. Add a blank entry or use a preset.</CEHCC_ObstacleEditorEmpty>
   <CEHCC_ObstacleValid>Valid</CEHCC_ObstacleValid>
   <CEHCC_ObstacleInvalid>Invalid</CEHCC_ObstacleInvalid>

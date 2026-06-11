@@ -7,6 +7,8 @@
   <CEHCC_WindowTitle>CE 命中与火力分析器</CEHCC_WindowTitle>
   <CEHCC_GlossaryTooltip>名词解释</CEHCC_GlossaryTooltip>
   <CEHCC_GlossaryTitle>名词解释</CEHCC_GlossaryTitle>
+  <CEHCC_MinimizeWindow>最小化</CEHCC_MinimizeWindow>
+  <CEHCC_RestoreWindow>还原</CEHCC_RestoreWindow>
   <CEHCC_GlossaryBody><![CDATA[蒙特卡洛首发
 用大量随机样本模拟第一发子弹，结果更接近真实开火采样，但仍是近似。
 
@@ -109,6 +111,9 @@ CE 使用的 AimingAccuracy。瞄准射击时，它决定能把基础摆动压�
 视野效率
 武器瞄具效率。瞄准射击和能见度误差会用到它。
 
+瞬发/激光弹道
+CE 中的部分激光弹丸会用瞬发射线判定，而不是普通飞行弹丸。本计算器会把这类弹道按直线瞬发近似：忽略飞行时间预判和重力；如果弹丸使用激光伤害衰减，机械散布不再作为落点散布参与命中。
+
 FasterRepeatShots
 CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预热；本计算器默认按继续向同一方向射击近似。
 
@@ -142,6 +147,13 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_TargetPresetDmsTarbosaurus>骇蜥（DMS）</CEHCC_TargetPresetDmsTarbosaurus>
   <CEHCC_TargetPresetMenuLine>{0}：高 {1}m，宽 {2}m；锐 {3}，钝 {4}，热 {5}，电 {6}</CEHCC_TargetPresetMenuLine>
   <CEHCC_TargetPresetLoaded>已载入目标预设：{0}。</CEHCC_TargetPresetLoaded>
+  <CEHCC_Tools>工具</CEHCC_Tools>
+  <CEHCC_ToolsTitle>工具</CEHCC_ToolsTitle>
+  <CEHCC_ToolsDescription>控制 CE 射界/数据采集扩展在选中射手或炮塔时显示哪些按钮。</CEHCC_ToolsDescription>
+  <CEHCC_ToolShowFireFieldGizmo>显示射界按钮</CEHCC_ToolShowFireFieldGizmo>
+  <CEHCC_ToolShowTargetProfileGizmo>显示目标体型按钮</CEHCC_ToolShowTargetProfileGizmo>
+  <CEHCC_ToolShowAimDebugGizmo>显示可瞄准性调试按钮</CEHCC_ToolShowAimDebugGizmo>
+  <CEHCC_ToolShowObstacleCollectorGizmo>显示数据采集按钮</CEHCC_ToolShowObstacleCollectorGizmo>
   <CEHCC_Recalculate>重新计算</CEHCC_Recalculate>
   <CEHCC_LoadWeaponNoSelection>请先选中一名持枪 pawn、一座 CE 炮塔，或选中一把地上的枪械。</CEHCC_LoadWeaponNoSelection>
   <CEHCC_LoadWeaponNoWeapon>当前选择里没有可读取的远程武器。</CEHCC_LoadWeaponNoWeapon>
@@ -197,7 +209,8 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_DpsRate>持续射速：{0} 发/秒（优先按弹匣、瞄准/预热、冷却和换弹估算）。</CEHCC_DpsRate>
   <CEHCC_DpsAverageHit>平均命中率：{0}（按当前连发逐发概率平均）。</CEHCC_DpsAverageHit>
   <CEHCC_DpsFasterRepeatShots>重复射击预热缩短：按 CE FasterRepeatShots 近似，默认继续向同一方向射击；重复预热约为原来的 {0}%。</CEHCC_DpsFasterRepeatShots>
-  <CEHCC_DpsDirectDamage>直击：{0}，纸面 {1}/发，护甲后 {2}/发。</CEHCC_DpsDirectDamage>
+  <CEHCC_DpsDirectDamage>直击：{0}，有效 {1}/发，护甲后 {2}/发。</CEHCC_DpsDirectDamage>
+  <CEHCC_DpsLaserFalloff>激光伤害衰减：当前距离/散布下直接伤害约为纸面的 {0}。</CEHCC_DpsLaserFalloff>
   <CEHCC_DpsDirectStats>直击 DPS：纸面 {0}，命中期望 {1}，本轮连发期望 {2}。</CEHCC_DpsDirectStats>
   <CEHCC_DpsDirectDpsStats>命中期望 DPS：弹匣内 {0}，60 秒 {1}，长期 {2}（直击 + 范围）。</CEHCC_DpsDirectDpsStats>
   <CEHCC_DpsMagazineStats>弹匣期望总伤 {0}，单匣输出时长 {1} 秒，本轮连发期望 {2}。</CEHCC_DpsMagazineStats>
@@ -219,7 +232,7 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_ArmorTitle>护甲后伤害</CEHCC_ArmorTitle>
   <CEHCC_ArmorTarget>目标护甲：锐甲 {0} mm RHA，钝甲 {1} MPa，热甲 {2}，电甲 {3}。</CEHCC_ArmorTarget>
   <CEHCC_ArmorNoDirectDamage>尚无可计算的直击伤害；载入武器和弹药后显示护甲后结果。</CEHCC_ArmorNoDirectDamage>
-  <CEHCC_ArmorDirectResult>直击纸面 {0}/发，护甲后 {1}/发。</CEHCC_ArmorDirectResult>
+  <CEHCC_ArmorDirectResult>直击有效 {0}/发，护甲后 {1}/发。</CEHCC_ArmorDirectResult>
   <CEHCC_ArmorPenetration>弹药穿透参考：{0}。</CEHCC_ArmorPenetration>
   <CEHCC_ArmorBreakdown>伤害拆分：{0}。</CEHCC_ArmorBreakdown>
   <CEHCC_ArmorStatus>状态：{0}</CEHCC_ArmorStatus>
@@ -233,8 +246,11 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_ArmorApproxNote>近似说明：当前按一个代表部位的综合护甲估算；真实 CE 会按衣物层、覆盖部位和天然护甲逐层结算。</CEHCC_ArmorApproxNote>
   <CEHCC_ResultTargetBox>使用的目标盒：宽 {0} 格，高 {1} 垂直格，瞄准高度 {2} 垂直格。综合能见度误差：{3} 格。</CEHCC_ResultTargetBox>
   <CEHCC_ResultDerivedErrors>自动计算误差：能见度 {0} 格，预判 {1} 格，射程 {2} 格。</CEHCC_ResultDerivedErrors>
-  <CEHCC_ResultRealFireInputs>实际射击采样使用：有效枪口摆动 {0} 度，连发间隔 {1} tick，弹道重力 {2}。</CEHCC_ResultRealFireInputs>
+  <CEHCC_ResultRealFireInputs>实际射击采样使用：有效枪口摆动 {0} 度，有效机械散布 {1} 度，连发间隔 {2} tick，弹道重力 {3}。</CEHCC_ResultRealFireInputs>
+  <CEHCC_ResultInstantProjectile>瞬发弹道：按直线射线近似，已忽略重力和飞行时间预判。</CEHCC_ResultInstantProjectile>
+  <CEHCC_ResultInstantProjectileNoSpread>瞬发/激光弹道：按直线射线近似，已忽略重力、飞行时间预判和机械散布落点。</CEHCC_ResultInstantProjectileNoSpread>
   <CEHCC_ResultRangeVertical>射程误差导致的最大高低偏差：{0} 垂直格（约 {1} 米）。</CEHCC_ResultRangeVertical>
+  <CEHCC_ResultTargetCoverAdjustment>目标掩体调整：最高掩体 {0} 垂直格，有效枪口高度 {1} 垂直格。</CEHCC_ResultTargetCoverAdjustment>
   <CEHCC_ResultAxisBreakdown>首发拆分：水平穿过 {0}，垂直穿过 {1}。</CEHCC_ResultAxisBreakdown>
   <CEHCC_ResultObstacleFilter>路径障碍过滤：{0} 个障碍；首发被挡 {1}，连发任一被挡 {2}。{3}</CEHCC_ResultObstacleFilter>
   <CEHCC_ResultAxisDiagnosis>当前限制：{0}。{1}</CEHCC_ResultAxisDiagnosis>
@@ -247,7 +263,8 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_HintSingleSaturated>首发已经接近必中了，改动参数可能只在逐发或极端距离上看得出来。</CEHCC_HintSingleSaturated>
   <CEHCC_HintVeryLow>首发命中很低，优先检查目标宽度、距离、摆动、散布和能见度误差。</CEHCC_HintVeryLow>
   <CEHCC_HintMixed>水平和垂直都在参与限制，建议看首发拆分和逐发曲线判断主因。</CEHCC_HintMixed>
-  <CEHCC_WarnSpecialProjectile>注意：当前弹丸含 {0}，计算器仍按普通直射近似。</CEHCC_WarnSpecialProjectile>
+  <CEHCC_NoteInstantProjectile>注意：当前弹丸按瞬发/激光弹道近似；反射、护盾和激光伤害衰减仍只作有限近似。</CEHCC_NoteInstantProjectile>
+  <CEHCC_WarnSpecialProjectile>注意：当前弹丸还含 {0}，这些特殊机制仍按简化直射近似。</CEHCC_WarnSpecialProjectile>
   <CEHCC_SpecialProjectileInstant>瞬发</CEHCC_SpecialProjectileInstant>
   <CEHCC_SpecialProjectilePellets>{0} 个弹丸</CEHCC_SpecialProjectilePellets>
   <CEHCC_SpecialProjectilePowered>推进/变速</CEHCC_SpecialProjectilePowered>
@@ -255,6 +272,8 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_SpecialProjectileShelling>炮击属性</CEHCC_SpecialProjectileShelling>
   <CEHCC_SpecialProjectileFuze>引信/空爆修正</CEHCC_SpecialProjectileFuze>
   <CEHCC_FasterRepeatShots>FasterRepeatShots（同方向重复射击）</CEHCC_FasterRepeatShots>
+  <CEHCC_InstantProjectile>瞬发/激光弹道</CEHCC_InstantProjectile>
+  <CEHCC_InstantIgnoresMechanicalSpread>瞬发散布仅用于激光衰减</CEHCC_InstantIgnoresMechanicalSpread>
   <CEHCC_TargetModeForcedSuppress>提示：压制射击会忽略头部/腿部选择，当前按躯干高度计算。</CEHCC_TargetModeForcedSuppress>
   <CEHCC_TargetModeForcedSkill>提示：武器掌握 {0} 低于 2.45，CE 会忽略头部/腿部选择，当前按躯干高度计算。</CEHCC_TargetModeForcedSkill>
   <CEHCC_ResultPerShot>逐发：{0}</CEHCC_ResultPerShot>
@@ -272,6 +291,7 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_MaxRangeCells>最大射程（格）</CEHCC_MaxRangeCells>
   <CEHCC_ProjectileSpeed>弹丸速度（格/秒）</CEHCC_ProjectileSpeed>
   <CEHCC_ShotHeight>枪口高度（垂直格）</CEHCC_ShotHeight>
+  <CEHCC_ShooterMaxHeight>射手最高高度（垂直格）</CEHCC_ShooterMaxHeight>
   <CEHCC_GravityFactor>弹丸重力倍率</CEHCC_GravityFactor>
 
   <CEHCC_SectionWeaponShooter>武器与射手</CEHCC_SectionWeaponShooter>
@@ -411,8 +431,8 @@ CE 设置项。开启后，连续朝相近方向重复射击会缩短后续预�
   <CEHCC_ObstacleClear>清空</CEHCC_ObstacleClear>
   <CEHCC_ObstacleTargetDistance>目标距离</CEHCC_ObstacleTargetDistance>
   <CEHCC_ObstacleDistanceTolerance>距离容差</CEHCC_ObstacleDistanceTolerance>
-  <CEHCC_ObstacleEditorApplies>当前生效：{0} 个有效项。</CEHCC_ObstacleEditorApplies>
-  <CEHCC_ObstacleEditorNotApplied>当前未生效：请检查距离、射手 ID、启用状态或有效项。</CEHCC_ObstacleEditorNotApplied>
+  <CEHCC_ObstacleEditorApplies>当前生效：{0} 个可用项。</CEHCC_ObstacleEditorApplies>
+  <CEHCC_ObstacleEditorNotApplied>当前未生效：请检查启用状态或可用项。</CEHCC_ObstacleEditorNotApplied>
   <CEHCC_ObstacleEditorEmpty>暂无路径掩体。可以新增空白项，或从预设添加。</CEHCC_ObstacleEditorEmpty>
   <CEHCC_ObstacleValid>有效</CEHCC_ObstacleValid>
   <CEHCC_ObstacleInvalid>无效</CEHCC_ObstacleInvalid>

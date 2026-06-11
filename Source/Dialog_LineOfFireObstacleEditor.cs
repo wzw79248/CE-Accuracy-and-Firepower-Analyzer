@@ -56,8 +56,6 @@ namespace CEHitChanceCalculator
         private readonly HitChanceInputs input;
         private readonly Dictionary<LineOfFireObstacle, ObstacleBuffers> buffersByObstacle = new Dictionary<LineOfFireObstacle, ObstacleBuffers>();
         private Vector2 scrollPosition;
-        private string targetDistanceBuffer;
-        private string toleranceBuffer;
 
         public override Vector2 InitialSize => new Vector2(940f, 640f);
 
@@ -135,12 +133,6 @@ namespace CEHitChanceCalculator
                 return;
             }
             x += 126f;
-            if (Widgets.ButtonText(new Rect(x, row1.y, 140f, row1.height), "CEHCC_ObstacleMatchCurrent".Translate()))
-            {
-                MatchCurrentInput(context);
-                return;
-            }
-            x += 146f;
             if (Widgets.ButtonText(new Rect(x, row1.y, 88f, row1.height), "CEHCC_ObstacleClear".Translate()))
             {
                 context.Obstacles.Clear();
@@ -150,36 +142,10 @@ namespace CEHitChanceCalculator
             }
 
             Rect row2 = new Rect(rect.x, rect.y + 34f, rect.width, 28f);
-            Widgets.Label(new Rect(row2.x, row2.y + 4f, 150f, row2.height), "CEHCC_ObstacleTargetDistance".Translate());
-            if (string.IsNullOrEmpty(targetDistanceBuffer))
-            {
-                targetDistanceBuffer = Format(context.TargetDistanceCells);
-            }
-            float targetDistance = context.TargetDistanceCells;
-            Widgets.TextFieldNumeric(new Rect(row2.x + 154f, row2.y, 86f, row2.height), ref targetDistance, ref targetDistanceBuffer, 0.1f, 500f);
-            if (!NearlyEqual(targetDistance, context.TargetDistanceCells))
-            {
-                context.TargetDistanceCells = targetDistance;
-                dirty = true;
-            }
-
-            Widgets.Label(new Rect(row2.x + 252f, row2.y + 4f, 110f, row2.height), "CEHCC_ObstacleDistanceTolerance".Translate());
-            if (string.IsNullOrEmpty(toleranceBuffer))
-            {
-                toleranceBuffer = Format(context.DistanceToleranceCells);
-            }
-            float tolerance = context.DistanceToleranceCells;
-            Widgets.TextFieldNumeric(new Rect(row2.x + 366f, row2.y, 72f, row2.height), ref tolerance, ref toleranceBuffer, 0.05f, 20f);
-            if (!NearlyEqual(tolerance, context.DistanceToleranceCells))
-            {
-                context.DistanceToleranceCells = tolerance;
-                dirty = true;
-            }
-
             string status = context.AppliesTo(input)
-                ? "CEHCC_ObstacleEditorApplies".Translate(context.ValidObstacleCount(input.DistanceCells)).ToString()
+                ? "CEHCC_ObstacleEditorApplies".Translate(context.UsableObstacleCount()).ToString()
                 : "CEHCC_ObstacleEditorNotApplied".Translate().ToString();
-            Widgets.Label(new Rect(row2.x + 452f, row2.y + 4f, row2.width - 452f, row2.height), status);
+            Widgets.Label(new Rect(row2.x, row2.y + 4f, row2.width, row2.height), status);
 
             if (dirty)
             {
@@ -204,7 +170,7 @@ namespace CEHitChanceCalculator
                 dirty = true;
             }
 
-            string validLabel = obstacle.IsValid(context.TargetDistanceCells)
+            string validLabel = obstacle.IsUsable()
                 ? "CEHCC_ObstacleValid".Translate().ToString()
                 : "CEHCC_ObstacleInvalid".Translate().ToString();
             Widgets.Label(new Rect(x + 314f, y + 3f, rect.width - 420f, 24f), validLabel);
@@ -299,17 +265,6 @@ namespace CEHitChanceCalculator
                 TargetLabel = "",
                 SummaryLabel = "CEHCC_ObstacleManualContext".Translate()
             };
-        }
-
-        private void MatchCurrentInput(LineOfFireObstacleContext context)
-        {
-            context.ShooterThingId = input?.ShooterThingId ?? 0;
-            context.TargetDistanceCells = Mathf.Max(0.1f, input?.DistanceCells ?? context.TargetDistanceCells);
-            context.DistanceToleranceCells = Mathf.Max(0.05f, context.DistanceToleranceCells);
-            context.SummaryLabel = "CEHCC_ObstacleManualContext".Translate();
-            targetDistanceBuffer = Format(context.TargetDistanceCells);
-            toleranceBuffer = Format(context.DistanceToleranceCells);
-            MarkChanged();
         }
 
         private void AddManualObstacle(LineOfFireObstacleContext context)
